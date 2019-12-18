@@ -21,9 +21,9 @@ class App():
     def __init__(self, master):
         self.master = master
         self.initWidgets()
-        self.init_scan_sweep()
 
-        self.excel_path = tuple()
+        self.init_scan_sweep()
+        self.interval = 1
         self.rgb = ('#000000', 'black')
         
     def initWidgets(self):
@@ -54,7 +54,7 @@ class App():
         fm2.pack(side=TOP, fill=BOTH, expand=YES)
         preview_button = Button(fm2, text = 'Preview', 
             bd=3, width = 10, height = 1, 
-            command = self.preview_peak, 
+            command = self.preview_peak_plot, 
             activebackground='black', activeforeground='white')
         preview_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
         work_button = Button(fm2, text = 'Work', 
@@ -148,7 +148,7 @@ class App():
     def init_menu(self):
         # '初始化菜单的方法'
         # 定义菜单条所包含的3个菜单
-        menus = ('文件', '编辑', '帮助')
+        menus = ('文件', '编辑', '修正', '帮助')
         # 定义菜单数据
         items = (OrderedDict([
                 # 每项对应一个菜单项，后面元组第一个元素是菜单图标，
@@ -160,19 +160,26 @@ class App():
                 ('-1', (None, None)),
                 ('退出', (None, self.master.quit)),
                 ]),
-            OrderedDict([('数据预览',(None, None)), 
-                ('查看峰值',(None, None)),
-                ('峰位校正',(None, None)),
+            OrderedDict([('电容/扩散拟合',(None, None)), 
+                ('电容占比图',(None, None)),
+                ('数据导出', OrderedDict([('CV导出', (None, None)),
+                        ('柱状图导出',(None, None))])),
                 ('-1',(None, None)),
                 ('log(i)-log(v)',(None, None)),
-                ('数据导出',(None, None)),
+                ('数据导出 ',(None, None)),
                 ('-2',(None, None)),
+                ('Ip-v^1/2',(None, None)),
+                ('数据导出  ',(None, None)),
+                ('-3',(None, None)),
                 # 二级菜单
                 ('更多', OrderedDict([
-                    ('离子导率图',(None, self.plot_Dions)),
-                    ('数据导出',(None, None)),
                     ('选择颜色',(None, self.select_color))
                     ]))
+                ]),
+            OrderedDict([('峰值预览',(None,self.preview_peak_plot)),
+                ('峰值校正',(None,None)),
+                ('-1',(None, None)),
+                ('取点间隔',(None,None))
                 ]),
             OrderedDict([('帮助主题',(None, None)),
                 ('-1',(None, None)),
@@ -216,11 +223,11 @@ class App():
                         command=tm[label][1], compound=LEFT)
     # 生成所有需要的图标
     def init_icons(self):
-        self.master.filenew_icon = PhotoImage(name='D:/pyfold/重构/app/images/filenew.png')
-        self.master.fileopen_icon = PhotoImage(name='D:/pyfold/重构/app/images/fileopen.png')
-        self.master.save_icon = PhotoImage(name='D:/pyfold/重构/app/images/save.png')
-        self.master.saveas_icon = PhotoImage(name='D:/pyfold/重构/app/images/saveas.png')
-        self.master.signout_icon = PhotoImage(name='D:/pyfold/重构/app/images/signout.png')
+        self.master.filenew_icon = PhotoImage(name='E:/pydoc/tkinter/images/filenew.png')
+        self.master.fileopen_icon = PhotoImage(name='E:/pydoc/tkinter/images/fileopen.png')
+        self.master.save_icon = PhotoImage(name='E:/pydoc/tkinter/images/save.png')
+        self.master.saveas_icon = PhotoImage(name='E:/pydoc/tkinter/images/saveas.png')
+        self.master.signout_icon = PhotoImage(name='E:/pydoc/tkinter/images/signout.png')
     # 新建项目
     def new_project(self):
         pass
@@ -230,9 +237,9 @@ class App():
 
     def open_filename(self):
         # 调用askopenfile方法获取打开的文件名
-        self.excel_path = filedialog.askopenfilename(title='打开多个文件',
-            filetypes=[('Excel文件', '*.xlsx'), ('Excel 文件', '*.xls'), ("逗号分隔符文件", "*.csv")], # 只处理的文件类型
-            initialdir='C:/Users/wo/Desktop/SeTCoMIPPy600')#'d:/') # 初始目录
+        self.excel_path = filedialog.askopenfilename(title='打开文件',
+            filetypes=[('Excel文件', '*.xlsx'), ('Excel 文件', '*.xls')], # 只处理的文件类型
+            initialdir='E:/pydoc/C-fit_uncompleted/SeTCoMIPPy600')#'d:/') # 初始目录
         self.excel_adr.set(self.excel_path)
 
         
@@ -246,42 +253,72 @@ class App():
         # self.v7.set(10.0)
         # self.v8.set(0.0)
         # self.v9.set(0.0)
+    
+    def read_data(self):
+        self.data_list = []
+        self.scan_rate = []
+        self.scan_sweep = [self.v1.get(), self.v2.get(), self.v3.get(), 
+            self.v4.get(), self.v5.get(), self.v6.get(), 
+            self.v7.get(), self.v8.get(), self.v9.get()]
+        self.selected_sweep = [self.var1.get(), self.var2.get(), self.var3.get(), 
+            self.var4.get(), self.var5.get(), self.var6.get(), 
+            self.var7.get(), self.var8.get(), self.var9.get()]
+        for x, yn in zip(self.scan_sweep, self.selected_sweep):
+            i = 1
+            if yn != 0:
+                self.scan_rate.append(x)
+                try:
+                    df = pd.read_excel(self.excel_path, sheet_name = 'Sheet'+str(i))
+                except xlrd.biffh.XLRDError:
+                    messagebox.showinfo(title='警告',message='文件读取错误:工作表需以“Sheet”加数字命名。')
+                try:
+                    data = pd.concat([df['WE(1).Potential (V)'], df['WE(1).Current (A)']*1000.], axis=1)
+                    data = data.iloc[-2453::self.interval]
+                    data.columns = ['Potential(V)', 'Current(mA)']
+                    self.data_list.append(data)
+                except KeyError:
+                    messagebox.showinfo(title='警告',message='文件读取错误:检查是否包含空Sheet。')
+                i += 1
+            else:
+                i += 1
+                continue
 
     def processData(self):
-        if self.excel_path:
-            io = self.excel_path
-            self.scan_sweep = [self.v1.get(), self.v2.get(), self.v3.get(), 
-                self.v4.get(), self.v5.get(), self.v6.get(), 
-                self.v7.get(), self.v8.get(), self.v9.get()]
-            example = Orz(io, self.scan_sweep)
+        self.scan_sweep = [self.v1.get(), self.v2.get(), self.v3.get(), 
+            self.v4.get(), self.v5.get(), self.v6.get(), 
+            self.v7.get(), self.v8.get(), self.v9.get()]
+        self.selected_sweep = [self.var1.get(), self.var2.get(), self.var3.get(), 
+            self.var4.get(), self.var5.get(), self.var6.get(), 
+            self.var7.get(), self.var8.get(), self.var9.get()]
+        if '.xls' in self.excel_adr:
+            self.read_data()
+            self.example = Orz(self.scan_rate, self.data_list)
             try:
-                example.read_data2()
-                example.search_peak()
-            except xlrd.biffh.XLRDError:
-                messagebox.showinfo(title='警告',message='文件读取错误！')
-            return example.data_list, example.ox_peak_list, example.red_peak_list
+                self.example.search_peak()
+            except:
+                messagebox.showinfo(title='警告',message='寻峰出错')
         else:
             messagebox.showinfo(title='警告',message='请选择有效文件！')
 
-    def preview_peak(self):
+    def preview_peak_plot(self):
         prda = self.processData()
         color = ['k','mediumslateblue','dimgrey','blueviolet','forestgreen','orchid','dodgerblue','yellowgreen','teal', 
             'r','mediumseagreen','royalblue','gold','tomato','lightgreen','lightsteelblue','hotpink','darkorchid']
         label = ['v1', 'v2', 'v3', 'v4', 'v5', 'v6','v7' ,'v8', 'v9']
         fig,((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3)
         ax = [ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8,ax9]
-        for i, a in zip(range(0, 9-self.scan_sweep.count(0)), self.scan_sweep):
-            if a == 0:
-                messagebox.showinfo(title='警告',message='请输入扫描速率。')
-            elif ((a != 0)and(prda[1][i].empty))or(a != 0)and(prda[2][i].empty):
+        for i, a, yn in zip(range(0, 9-self.scan_sweep.count(0)), self.scan_sweep, self.selected_sweep):
+            if yn == 0:
+                continue
+            elif ((yn != 0)and(prda[1][i].empty))or((yn != 0)and(prda[2][i].empty)):
                 messagebox.showinfo(title='警告',message='寻峰出错，请手动输入。')
-            elif (a != 0)and(prda[1][i].empty == False)and(prda[2][i].empty == False):
+            elif (yn != 0)and(prda[1][i].empty == False)and(prda[2][i].empty == False):
                 ax[i].plot(prda[0][i]['Potential(V)'], prda[0][i]['Current(mA)'],
                 color = color[i],
                 linestyle = '-',
                 label = 'pristine '+ label[i],
                 linewidth = 1.5)
-                # ax[i].legend(loc='best')
+                ax[i].legend(loc='best')
                 ax[i].annotate('ox peak1', xy=(prda[1][i].iloc[0,0], prda[1][i].iloc[0,1]), 
                     xytext=(prda[1][i].iloc[0,0]-0.5, prda[1][i].iloc[0,1]),
                     color=color[i+9],size=7,
@@ -336,3 +373,4 @@ class App():
 
     def plot_Dions(self):
         pass
+
