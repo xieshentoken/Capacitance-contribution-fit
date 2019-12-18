@@ -1,7 +1,3 @@
-import os
-from collections import OrderedDict
-from itertools import permutations
-
 import numpy as np
 import pandas as pd
 import scipy.signal as signal
@@ -9,32 +5,21 @@ import scipy.signal as signal
 
 class Orz():
 
-    def __init__(self, path, scan_rate):
-        self.path = path  # 为一个包含excel位置信息的list或tup
+    def __init__(self, scan_rate, data_list):
         self.scan_rate = scan_rate
-
         self.data_list = []
         self.ox_peak_list = []
         self.red_peak_list = []
         self.fit_data_list = []
 
-    # 读取多张excel中的数据
     # def read_data(self):
-    #     for doc_path in self.path:
-    #         df = pd.read_excel(doc_path)
+    #     scan_num = len(self.scan_rate)-self.scan_rate.count(0)
+    #     for i in range(1, scan_num+1):
+    #         df = pd.read_excel(self.path, sheet_name = 'Sheet'+str(i))
     #         data = pd.concat([df['WE(1).Potential (V)'], df['WE(1).Current (A)']*1000.], axis=1)
-    #         data = data.iloc[-2453:]
+    #         data = data.iloc[-2453::self.interval]
     #         data.columns = ['Potential(V)', 'Current(mA)']
     #         self.data_list.append(data)
-
-    def read_data2(self):
-        scan_num = len(self.scan_rate)-self.scan_rate.count(0)
-        for i in range(1, scan_num+1):
-            df = pd.read_excel(self.path, sheet_name = 'Sheet'+str(i))
-            data = pd.concat([df['WE(1).Potential (V)'], df['WE(1).Current (A)']*1000.], axis=1)
-            data = data.iloc[-2453:]
-            data.columns = ['Potential(V)', 'Current(mA)']
-            self.data_list.append(data)
 
     # 分别求氧化、还原电流的极值，取其中绝对值最大的两个为峰值电流
     def search_peak(self):
@@ -53,6 +38,16 @@ class Orz():
                     self.log_red_peak1 = [np.log10(abs(c.iloc[0,1])) for c in self.red_peak_list]
                     self.anode_avb = np.polyfit(np.log10(self.scan_rate), self.log_ox_peak1, 1)
                     self.cathode_avb = np.polyfit(np.log10(self.scan_rate), self.log_red_peak1, 1)
+
+    # 根据Randles-Sevcik方程拟合离子扩散系数--------------------------------------------------
+    def sqrt_D(self):
+        if len(self.scan_rate) == len(self.data_list):
+            if 0 not in [len(c) for c in self.ox_peak_list]:
+                if 0 not in [len(c) for c in self.red_peak_list]:
+                    self.ox_peak1 = [c.iloc[0,1] for c in self.ox_peak_list]
+                    self.red_peak1 = [c.iloc[0,1] for c in self.red_peak_list]
+                    self.anode_D_ions = np.polyfit(np.sqrt(self.scan_rate), self.ox_peak1, 1)[0]
+                    self.cathode_D_ions = np.polyfit(np.sqrt(self.scan_rate), self.red_peak1, 1)[0]
 
     # 求出每个扫速下电容贡献的电流大小，以dataframe形式储存在self.fit_data_list中，dataframe的三列数据分别为｜电压｜、｜总电流｜、｜电容性电流｜
     def fit(self):
