@@ -24,6 +24,7 @@ class App():
 
         self.init_scan_sweep()
         self.interval = 1
+        self.fit_data_expand = []
         self.rgb = ('#000000', 'black')
         
     def initWidgets(self):
@@ -59,12 +60,12 @@ class App():
         preview_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
         work_button = Button(fm2, text = 'Work', 
             bd=3, width = 10, height = 1, 
-            command = self.start_work, 
+            command = self.plot_selected, 
             activebackground='black', activeforeground='white')
         work_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
         save_button = Button(fm2, text = 'Save', 
             bd=3, width = 10, height = 1, 
-            command = self.save_as_csv, 
+            command = None, 
             activebackground='black', activeforeground='white')
         save_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
     #---------------------------------------------------------------------------------------
@@ -155,15 +156,15 @@ class App():
                 # 第二个元素是菜单对应的事件处理函数
                 ('新建', (None, self.new_project)),
                 ('打开', (None, self.open_filename)),
-                ('另存为', OrderedDict([('CSV', (None, self.save_as_csv)),
-                        ('Excel',(None, self.save_as_excel))])),
+                ('另存为', OrderedDict([('CSV', (None, None)),
+                        ('Excel',(None, None))])),
                 ('-1', (None, None)),
                 ('退出', (None, self.master.quit)),
                 ]),
-            OrderedDict([('电容/扩散拟合',(None, None)), 
-                ('电容占比图',(None, None)),
-                ('数据导出', OrderedDict([('CV导出', (None, None)),
-                        ('柱状图导出',(None, None))])),
+            OrderedDict([('电容/扩散拟合',(None, self.capac_diff_fit)), 
+                ('电容占比图',(None, self.capac_diff_bar)),
+                ('数据导出', OrderedDict([('CV导出', (None, self.save_Cfit_data)),
+                        ('柱状图导出',(None, self.save_bar))])),
                 ('-1',(None, None)),
                 ('log(i)-log(v)',(None, None)),
                 ('数据导出 ',(None, None)),
@@ -177,9 +178,9 @@ class App():
                     ]))
                 ]),
             OrderedDict([('峰值预览',(None,self.preview_peak_plot)),
-                ('峰值校正',(None,None)),
+                ('峰值校正',(None,self.peak_rectify)),
                 ('-1',(None, None)),
-                ('取点间隔',(None,None))
+                ('取点间隔',(None,self.interval_set))
                 ]),
             OrderedDict([('帮助主题',(None, None)),
                 ('-1',(None, None)),
@@ -236,62 +237,73 @@ class App():
         pass
 
     def open_filename(self):
+        self.index = 0
+        self.excel_path = ''
         # 调用askopenfile方法获取打开的文件名
         self.excel_path = filedialog.askopenfilename(title='打开文件',
             filetypes=[('Excel文件', '*.xlsx'), ('Excel 文件', '*.xls')], # 只处理的文件类型
-            initialdir='E:/pydoc/C-fit_uncompleted/SeTCoMIPPy600')#'d:/') # 初始目录
+            initialdir='/Users/hsh/Documents/py/recoding/C-fit2.0/SeTCoMIPPy600') # 初始目录
         self.excel_adr.set(self.excel_path)
 
         
     def init_scan_sweep(self):
         self.v1.set(0.1)
-        # self.v2.set(0.2)
-        # self.v3.set(0.5)
-        # self.v4.set(1.0)
-        # self.v5.set(2.0)
-        # self.v6.set(5.0)
-        # self.v7.set(10.0)
+        self.v2.set(0.2)
+        self.v3.set(0.5)
+        self.v4.set(1.0)
+        self.v5.set(2.0)
+        self.v6.set(5.0)
+        self.v7.set(10.0)
         # self.v8.set(0.0)
         # self.v9.set(0.0)
     
-    def read_data(self):
-        self.data_list = []
-        self.scan_rate = []
+    def get_scan_rate(self):
         self.scan_sweep = [self.v1.get(), self.v2.get(), self.v3.get(), 
             self.v4.get(), self.v5.get(), self.v6.get(), 
             self.v7.get(), self.v8.get(), self.v9.get()]
         self.selected_sweep = [self.var1.get(), self.var2.get(), self.var3.get(), 
             self.var4.get(), self.var5.get(), self.var6.get(), 
             self.var7.get(), self.var8.get(), self.var9.get()]
-        for x, yn in zip(self.scan_sweep, self.selected_sweep):
-            i = 1
-            if yn != 0:
+
+    def read_data(self):
+        self.get_scan_rate()
+        self.data_list = []
+        self.scan_rate = []
+        file = pd.ExcelFile(self.excel_path)
+        scan_names = file.sheet_names
+        i = 1
+        for na, x, yn in zip(scan_names, self.scan_sweep, self.selected_sweep):
+            if (x != 0)and(yn != 0):
                 self.scan_rate.append(x)
                 try:
-                    df = pd.read_excel(self.excel_path, sheet_name = 'Sheet'+str(i))
-                except xlrd.biffh.XLRDError:
-                    messagebox.showinfo(title='警告',message='文件读取错误:工作表需以“Sheet”加数字命名。')
-                try:
+                    df = pd.read_excel(self.excel_path, sheet_name = na)
                     data = pd.concat([df['WE(1).Potential (V)'], df['WE(1).Current (A)']*1000.], axis=1)
                     data = data.iloc[-2453::self.interval]
                     data.columns = ['Potential(V)', 'Current(mA)']
                     self.data_list.append(data)
                 except KeyError:
                     messagebox.showinfo(title='警告',message='文件读取错误:检查是否包含空Sheet。')
+                    continue
+                except xlrd.biffh.XLRDError:
+                    messagebox.showinfo(title='警告',message='文件读取错误:工作表需以“Sheet”加数字命名。')
+                finally:
+                    pass
                 i += 1
+            elif (x == 0)and(yn != 0):
+                messagebox.showinfo(title='警告',message='文件读取错误:检查扫速输入值是否为零。')
+                break
             else:
+                # 如果该扫速没有被选中，则在list中补充一个0或空的DataFrame
+                self.scan_rate.append(0)
+                self.data_list.append(pd.DataFrame(columns=('Potential(V)', 'Current(mA)')))
                 i += 1
                 continue
-
+        
     def processData(self):
-        self.scan_sweep = [self.v1.get(), self.v2.get(), self.v3.get(), 
-            self.v4.get(), self.v5.get(), self.v6.get(), 
-            self.v7.get(), self.v8.get(), self.v9.get()]
-        self.selected_sweep = [self.var1.get(), self.var2.get(), self.var3.get(), 
-            self.var4.get(), self.var5.get(), self.var6.get(), 
-            self.var7.get(), self.var8.get(), self.var9.get()]
-        if '.xls' in self.excel_adr:
+        if '.xls' in self.excel_path:
             self.read_data()
+            # self.drop0_scan_rate = [i for i in self.scan_rate if i != 0]
+            # self.drop0_data_list = [j for j in self.data_list if j.empty == False]
             self.example = Orz(self.scan_rate, self.data_list)
             try:
                 self.example.search_peak()
@@ -300,55 +312,132 @@ class App():
         else:
             messagebox.showinfo(title='警告',message='请选择有效文件！')
 
+    def peak_rectify(self):
+        if self.index == 0:
+            self.processData()
+            self.kk = RectifyPeak(self.master, self.scan_sweep, self.selected_sweep, self.example.ox_peak_list, self.example.red_peak_list)
+            self.example.ox_peak_list = self.kk.corrected_ox_peak
+            self.example.red_peak_list = self.kk.corrected_red_peak
+        else:
+            self.kk = RectifyPeak(self.master, self.scan_sweep, self.selected_sweep, self.example.ox_peak_list, self.example.red_peak_list)
+            self.example.ox_peak_list = self.kk.corrected_ox_peak
+            self.example.red_peak_list = self.kk.corrected_red_peak
+        self.index += 1
+
     def preview_peak_plot(self):
-        prda = self.processData()
+        if self.index == 0:
+            self.processData()
+        else:
+            pass
         color = ['k','mediumslateblue','dimgrey','blueviolet','forestgreen','orchid','dodgerblue','yellowgreen','teal', 
             'r','mediumseagreen','royalblue','gold','tomato','lightgreen','lightsteelblue','hotpink','darkorchid']
         label = ['v1', 'v2', 'v3', 'v4', 'v5', 'v6','v7' ,'v8', 'v9']
         fig,((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3)
         ax = [ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8,ax9]
-        for i, a, yn in zip(range(0, 9-self.scan_sweep.count(0)), self.scan_sweep, self.selected_sweep):
-            if yn == 0:
-                continue
-            elif ((yn != 0)and(prda[1][i].empty))or((yn != 0)and(prda[2][i].empty)):
-                messagebox.showinfo(title='警告',message='寻峰出错，请手动输入。')
-            elif (yn != 0)and(prda[1][i].empty == False)and(prda[2][i].empty == False):
-                ax[i].plot(prda[0][i]['Potential(V)'], prda[0][i]['Current(mA)'],
-                color = color[i],
-                linestyle = '-',
-                label = 'pristine '+ label[i],
-                linewidth = 1.5)
-                ax[i].legend(loc='best')
-                ax[i].annotate('ox peak1', xy=(prda[1][i].iloc[0,0], prda[1][i].iloc[0,1]), 
-                    xytext=(prda[1][i].iloc[0,0]-0.5, prda[1][i].iloc[0,1]),
-                    color=color[i+9],size=7,
-                    arrowprops=dict(facecolor='k', shrink=0.05, width=1))
-                ax[i].annotate('red peak1', xy=(prda[2][i].iloc[0,0], prda[2][i].iloc[0,1]), 
-                    xytext=(prda[2][i].iloc[0,0]+0.5, prda[2][i].iloc[0,1]),
-                    color=color[i+9],size=7,
-                    arrowprops=dict(facecolor='k', shrink=0.05, width=1))
-                ax[i].set_title('scan sweep = '+str(a)+'mV/s')
+        for i, x, yn in zip(range(0, 9),self.scan_sweep, self.selected_sweep):
+            if yn != 0:
+                try :
+                    ax[i].plot(self.data_list[i]['Potential(V)'], self.data_list[i]['Current(mA)'],
+                    color = color[i],
+                    linestyle = '-',
+                    label = 'pristine '+ label[i],
+                    linewidth = 1.5)
+                    # ax[i].legend(loc='best')
+                except IndexError:
+                    messagebox.showinfo(title='警告',message='请检查每个扫速下对应文件是否存在！')
+                try:
+                    ax[i].annotate('ox peak1', xy=(self.example.ox_peak_list[i].iloc[0,0], self.example.ox_peak_list[i].iloc[0,1]), 
+                        xytext=(self.example.ox_peak_list[i].iloc[0,0]-0.5, self.example.ox_peak_list[i].iloc[0,1]),
+                        color=color[i+9],size=7,
+                        arrowprops=dict(facecolor='k', shrink=0.05, width=1))
+                except IndexError:
+                    pass
+                try:
+                    ax[i].annotate('red peak1', xy=(self.example.red_peak_list[i].iloc[0,0], self.example.red_peak_list[i].iloc[0,1]), 
+                        xytext=(self.example.red_peak_list[i].iloc[0,0]+0.5, self.example.red_peak_list[i].iloc[0,1]),
+                        color=color[i+9],size=7,
+                        arrowprops=dict(facecolor='k', shrink=0.05, width=1))
+                except IndexError:
+                    pass
+                ax[i].set_title('scan sweep = '+str(x)+'mV/s')
                 ax[i].set_xlabel('Potential (V)')
                 ax[i].set_ylabel('Current (mA)')
+            else:
+                continue
         plt.show()
 
-    def start_work(self):
-        pass
+    def capac_diff_fit(self):
+        try:
+            if self.index == 0:
+                self.processData()
+            else:
+                pass
+            self.example.fit()
+            self.fit_data_expand = []
+            # 将example.fit_data_list扩展，没被选中的扫速下填入空DataFrame
+            for yn in self.selected_sweep:
+                if yn != 0:
+                    self.fit_data_expand.append(self.example.fit_data_list[self.selected_sweep.index(yn)])
+                elif yn == 0:
+                    self.fit_data_expand.append(pd.DataFrame(columns=('Potential(V)', 'Current(mA)')))
+            # 作图------------------------------------------------------------------------------------------------------------
+            color = ['k','mediumslateblue','dimgrey','blueviolet','forestgreen','orchid','dodgerblue','yellowgreen','teal', 
+                'r','mediumseagreen','royalblue','gold','tomato','lightgreen','lightsteelblue','hotpink','darkorchid']
+            label = ['v1', 'v2', 'v3', 'v4', 'v5', 'v6','v7' ,'v8', 'v9']
+            fig,((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3)
+            ax = [ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8,ax9]
+            for i, x, yn in zip(range(0, 9),self.scan_sweep, self.selected_sweep):
+                if yn != 0:
+                    try :
+                        ax[i].plot(self.data_list[i]['Potential(V)'], self.data_list[i]['Current(mA)'],
+                        color = color[i],
+                        linestyle = '-',
+                        label = 'pristine '+ label[i],
+                        linewidth = 1.5)
+                        ax[i].plot(self.fit_data_expand[i]['Potential(V)'], self.fit_data_expand[i]['Capacitance Current(mA)'],
+                        color = color[i+9],
+                        linestyle = '-',
+                        label = 'fit '+ label[i],
+                        linewidth = 1.5)
+                    except IndexError:
+                        messagebox.showinfo(title='警告',message='请检查每个扫速下对应文件是否存在！')
+                    ax[i].legend(loc='best')
+                    ax[i].set_title('scan sweep = '+str(x)+'mV/s')
+                    ax[i].set_xlabel('Potential (V)')
+                    ax[i].set_ylabel('Current (mA)')
+                else:
+                    continue
+            plt.show()
+        except AttributeError:
+            messagebox.showinfo(title='警告',message='结果为空，请重新选择源文件！')
 
-    def save_as_csv(self):
+    def save_Cfit_data(self):
+        # try:
         if True:
             save_path = filedialog.asksaveasfilename(title='保存文件', 
-            filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
+            filetypes=[("office Excel", "*.xls")], # 只处理的文件类型
             initialdir='d:/')
-            rsl.to_csv(save_path+'c-fit.csv')
+            writer = pd.ExcelWriter(save_path) 
+            for fit_data, v in zip(self.fit_data_expand, self.scan_rate):
+                if v != 0:
+                    fit_data.to_excel(writer, sheet_name=str(v))
+            writer.save()
+            writer.close()
         else:
             messagebox.showinfo(title='警告',message='结果为空，请重新选择源文件！')
+        # except ValueError:
+        #     messagebox.showinfo(title='警告',message='结果为空，请先进行拟合或重新选择源文件！')
 
-    def save_as_excel(self):
-        if len(self.cal_rsl) > 0:
-            messagebox.showinfo(title='提醒',message='该功能未完善')
-        else:
-            messagebox.showinfo(title='警告',message='结果为空，请重新选择源文件！')
+    def interval_set(self):
+        # 调用askinteger函数生成一个让用户输入整数的对话框
+        self.interval = simpledialog.askinteger('设置取点间隔', '即每n个点取一个,n:',
+            initialvalue=1, minvalue=1, maxvalue=200)
+
+    def capac_diff_bar(self):
+        pass
+
+    def save_bar(self):
+        pass
 
     def select_color(self):
 
@@ -364,7 +453,6 @@ class App():
     def plot_all_fit_result(self):
         pass
 
-
     def plot_bar(self):
         pass
 
@@ -374,3 +462,178 @@ class App():
     def plot_Dions(self):
         pass
 
+    # 自定义对话框类，继承Toplevel------------------------------------------------------------------------------------------
+class RectifyPeak(Toplevel):
+    # 定义构造方法
+    def __init__(self, parent, scan_sweep, selected_sweep, ox_peak_list, red_peak_list, title = '峰值校正', modal=False):
+        Toplevel.__init__(self, parent)
+        self.transient(parent)
+        # 设置标题
+        if title: self.title(title)
+        self.parent = parent
+        self.result = None
+        self.scan_sweep = scan_sweep
+        self.selected_sweep = selected_sweep
+        self.ox_peak_list = ox_peak_list
+        self.red_peak_list = red_peak_list
+        # 创建对话框的主体内容
+        frame = Frame(self)
+        # 调用init_widgets方法来初始化对话框界面
+        self.initial_focus = self.init_widgets(frame)
+        frame.pack(padx=5, pady=5)
+        # 调用init_buttons方法初始化对话框下方的按钮
+        self.init_buttons()
+        # 根据modal选项设置是否为模式对话框
+        if modal: self.grab_set()
+        if not self.initial_focus:
+            self.initial_focus = self
+        # 为"WM_DELETE_WINDOW"协议使用self.cancel_click事件处理方法
+        self.protocol("WM_DELETE_WINDOW", self.cancel_click)
+        # 根据父窗口来设置对话框的位置
+        self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
+            parent.winfo_rooty()+50))
+        print( self.initial_focus)
+        # 让对话框获取焦点
+        self.initial_focus.focus_set()
+        self.wait_window(self)
+    def init_var(self):
+        self.o_Up1, self.o_Up2, self.o_Up3 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.o_Up4, self.o_Up5, self.o_Up6 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.o_Up7, self.o_Up8, self.o_Up9 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.o_Ip1, self.o_Ip2, self.o_Ip3 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.o_Ip4, self.o_Ip5, self.o_Ip6 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.o_Ip7, self.o_Ip8, self.o_Ip9 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.r_Up1, self.r_Up2, self.r_Up3 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.r_Up4, self.r_Up5, self.r_Up6 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.r_Up7, self.r_Up8, self.r_Up9 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.r_Ip1, self.r_Ip2, self.r_Ip3 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.r_Ip4, self.r_Ip5, self.r_Ip6 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.r_Ip7, self.r_Ip8, self.r_Ip9 = DoubleVar(), DoubleVar(), DoubleVar()
+        self.ox_Up = [self.o_Up1, self.o_Up2, self.o_Up3, self.o_Up4, self.o_Up5, self.o_Up6, self.o_Up7, self.o_Up8, self.o_Up9]
+        self.ox_Ip = [self.o_Ip1, self.o_Ip2, self.o_Ip3, self.o_Ip4, self.o_Ip5, self.o_Ip6, self.o_Ip7, self.o_Ip8, self.o_Ip9]
+        self.red_Up = [self.r_Up1, self.r_Up2, self.r_Up3, self.r_Up4, self.r_Up5, self.r_Up6, self.r_Up7, self.r_Up8, self.r_Up9]
+        self.red_Ip = [self.r_Ip1, self.r_Ip2, self.r_Ip3, self.r_Ip4, self.r_Ip5, self.r_Ip6, self.r_Ip7, self.r_Ip8, self.r_Ip9]
+        for yn, up, ip, oxPeak in zip(self.selected_sweep, self.ox_Up, self.ox_Ip, self.ox_peak_list):
+            if yn != 0:
+                try:
+                    up.set(oxPeak.iloc[0,0])
+                    ip.set(oxPeak.iloc[0,1])
+                except IndexError:
+                    continue
+        for yn, up, ip, redPeak in zip(self.selected_sweep, self.red_Up, self.red_Ip, self.red_peak_list):
+            if yn != 0:
+                try:
+                    up.set(redPeak.iloc[0,0])
+                    ip.set(redPeak.iloc[0,1])
+                except IndexError:
+                    continue
+    # 通过该方法来创建自定义对话框的内容
+    def init_widgets(self, master):
+        # 创建第一个容器
+        fm1 = Frame(master)
+        # 该容器放在左边排列
+        fm1.pack(side=TOP, fill=BOTH, expand=NO)
+        Label(fm1, font=('StSong', 10, 'bold'), 
+            text='                        ').pack(side=LEFT, ipadx=5, ipady=5, padx=15, pady=10)
+        for v, yn in zip(self.scan_sweep, self.selected_sweep):
+            if yn != 0:
+                Label(fm1, font=('StSong', 10, 'bold'), text=str(v)+' mV/s').pack(side=LEFT, padx=15, pady=10)
+
+        self.init_var()
+
+        fm2 = Frame(master)
+        fm2.pack(side=TOP, fill=BOTH, expand=NO)
+        Label(fm2, font=('StSong', 10, 'bold'), text=' Ox Peak(Up,Ip)').pack(side=LEFT, ipadx=5, ipady=5, padx=15, pady=10)
+        # print(self.ox_peak_list[0].iloc[0,0],type(self.ox_peak_list[0].iloc[0,0]))
+        # for yn, up, ip, oxPeak in zip(self.selected_sweep, self.ox_Up, self.ox_Ip, self.ox_peak_list):
+        for yn, up, ip in zip(self.selected_sweep, self.ox_Up, self.ox_Ip):
+            if yn != 0:
+                try:
+                    ttk.Entry(fm2, textvariable=up,
+                        width=3,
+                        font=('StSong', 10, 'bold'),
+                        foreground='#8080c0').pack(side=LEFT, ipadx=5, ipady=5, padx=5, pady=10)
+                    ttk.Entry(fm2, textvariable=ip,
+                        width=3,
+                        font=('StSong', 10, 'bold'),
+                        foreground='#8080c0').pack(side=LEFT, ipadx=5, ipady=5, padx=5, pady=10)
+                    # up.set(oxPeak.iloc[0,0])
+                    # ip.set(oxPeak.iloc[0,1])
+                except IndexError:
+                    continue
+
+        fm3 = Frame(master)
+        fm3.pack(side=TOP, fill=BOTH, expand=NO)
+        Label(fm3, font=('StSong', 10, 'bold'), text='Red Peak(Up,Ip)').pack(side=LEFT, ipadx=5, ipady=5, padx=15, pady=10)
+        # for yn, up, ip, redPeak in zip(self.selected_sweep, self.red_Up, self.red_Ip, self.red_peak_list):
+        for yn, up, ip in zip(self.selected_sweep, self.red_Up, self.red_Ip):
+            if yn != 0:
+                try:
+                    ttk.Entry(fm3, textvariable=up,
+                        width=3,
+                        font=('StSong', 10, 'bold'),
+                        foreground='#8080c0').pack(side=LEFT, ipadx=5, ipady=5, padx=5, pady=10)
+                    ttk.Entry(fm3, textvariable=ip,
+                        width=3,
+                        font=('StSong', 10, 'bold'),
+                        foreground='#8080c0').pack(side=LEFT, ipadx=5, ipady=5, padx=5, pady=10)
+                    # up.set(redPeak.iloc[0,0])
+                    # ip.set(redPeak.iloc[0,1])
+                except IndexError:
+                    continue
+
+    # 通过该方法来创建对话框下方的按钮框
+    def init_buttons(self):
+        f = Frame(self)
+        # 创建"确定"按钮,位置绑定self.ok_click处理方法
+        w = Button(f, text="确定", width=10, command=self.ok_click, default=ACTIVE)
+        w.pack(side=LEFT, padx=5, pady=5)
+        # 创建"确定"按钮,位置绑定self.cancel_click处理方法
+        w = Button(f, text="取消", width=10, command=self.cancel_click)
+        w.pack(side=LEFT, padx=5, pady=5)
+        self.bind("<Return>", self.ok_click)
+        self.bind("<Escape>", self.cancel_click)
+        f.pack()
+    # 该方法可对用户输入的数据进行校验
+    def validate(self):
+        # 可重写该方法
+        return True
+    # 该方法可处理用户输入的数据
+    def process_input(self):
+        self.corrected_ox_peak = []
+        self.corrected_red_peak = []
+        for yn, up, ip in zip(self.selected_sweep, self.ox_Up, self.ox_Ip):
+            if yn != 0:
+                corrected = pd.DataFrame([[up.get(), ip.get()]],columns=('Potential(V)', 'Current(mA)'))
+                self.corrected_ox_peak.append(corrected)
+            else:
+                corrected = pd.DataFrame(columns=('Potential(V)', 'Current(mA)'))
+                self.corrected_ox_peak.append(corrected)
+        for yn, up, ip in zip(self.selected_sweep, self.red_Up, self.red_Ip):
+            if yn != 0:
+                corrected = pd.DataFrame([[up.get(), ip.get()]],columns=('Potential(V)', 'Current(mA)'))
+                self.corrected_red_peak.append(corrected)
+            else:
+                corrected = pd.DataFrame(columns=('Potential(V)', 'Current(mA)'))
+                self.corrected_red_peak.append(corrected)
+        # print(self.corrected_ox_peak)
+    def ok_click(self, event=None):
+        # print('确定')
+        # 如果不能通过校验，让用户重新输入
+        if not self.validate():
+            self.initial_focus.focus_set()
+            return
+        self.withdraw()
+        self.update_idletasks()
+        # 获取用户输入数据
+        self.process_input()
+        # 将焦点返回给父窗口
+        self.parent.focus_set()
+        # 销毁自己
+        self.destroy()
+    def cancel_click(self, event=None):
+        # print('取消')
+        # 将焦点返回给父窗口
+        self.parent.focus_set()
+        # 销毁自己
+        self.destroy()
