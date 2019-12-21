@@ -24,6 +24,7 @@ class App():
 
         self.init_scan_sweep()
         self.interval = 1
+        self.index = -1
         self.fit_data_expand = []
         self.rgb = ('#000000', 'black')
         
@@ -60,7 +61,7 @@ class App():
         preview_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
         work_button = Button(fm2, text = 'Work', 
             bd=3, width = 10, height = 1, 
-            command = self.plot_selected, 
+            command = None, 
             activebackground='black', activeforeground='white')
         work_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
         save_button = Button(fm2, text = 'Save', 
@@ -129,13 +130,13 @@ class App():
         fm3.pack(side=TOP, fill=BOTH, expand=YES)
         plot_fit_result_button = Button(fm3, text = 'Plot selected', 
             bd=3, width = 10, height = 1, 
-            command = self.plot_selected, 
+            command = None, 
             activebackground='black', activeforeground='white')
         plot_fit_result_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
-        plot_fit_result_button.bind('<Double-2>', self.plot_all_fit_result)   
+        plot_fit_result_button.bind('<Double-2>', None)#self.plot_all_fit_result 
         plot_bar_button = Button(fm3, text = 'Plot bar', 
             bd=3, width = 10, height = 1, 
-            command = self.plot_bar, 
+            command = None, 
             activebackground='black', activeforeground='white')
         plot_bar_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)       
         plot_avb_button = Button(fm3, text = 'i=av^b', 
@@ -164,10 +165,10 @@ class App():
             OrderedDict([('电容/扩散拟合',(None, self.capac_diff_fit)), 
                 ('电容占比图',(None, self.capac_diff_bar)),
                 ('数据导出', OrderedDict([('CV导出', (None, self.save_Cfit_data)),
-                        ('柱状图导出',(None, self.save_bar))])),
+                        ('柱状图导出',(None, self.save_CD_bar))])),
                 ('-1',(None, None)),
-                ('log(i)-log(v)',(None, None)),
-                ('数据导出 ',(None, None)),
+                ('log(i)-log(v)',(None, self.plot_avb)),
+                ('数据导出 ',(None, self.save_avb)),
                 ('-2',(None, None)),
                 ('Ip-v^1/2',(None, None)),
                 ('数据导出  ',(None, None)),
@@ -231,21 +232,30 @@ class App():
         self.master.signout_icon = PhotoImage(name='E:/pydoc/tkinter/images/signout.png')
     # 新建项目
     def new_project(self):
-        pass
+        self.new_path()
+        self.init_scan_sweep()
+
     # 新建路径
     def new_path(self):
-        pass
+        self.index = -1
+        self.excel_adr.set('')
+        self.interval = 1
+        self.data_list = []
+        self.scan_rate = []
+        self.example = ''
+        self.kk = ''
+        self.fit_data_expand = []
+        self.bar_data = pd.DataFrame()
 
     def open_filename(self):
-        self.index = 0
         self.excel_path = ''
         # 调用askopenfile方法获取打开的文件名
         self.excel_path = filedialog.askopenfilename(title='打开文件',
             filetypes=[('Excel文件', '*.xlsx'), ('Excel 文件', '*.xls')], # 只处理的文件类型
             initialdir='/Users/hsh/Documents/py/recoding/C-fit2.0/SeTCoMIPPy600') # 初始目录
         self.excel_adr.set(self.excel_path)
+        self.index = 0
 
-        
     def init_scan_sweep(self):
         self.v1.set(0.1)
         self.v2.set(0.2)
@@ -254,6 +264,16 @@ class App():
         self.v5.set(2.0)
         self.v6.set(5.0)
         self.v7.set(10.0)
+        # self.v8.set(0.0)
+        # self.v9.set(0.0)
+
+        self.var1.set(1)
+        self.var2.set(1)
+        self.var3.set(1)
+        self.var4.set(1)
+        self.var5.set(1)
+        self.var6.set(1)
+        self.var7.set(1)
         # self.v8.set(0.0)
         # self.v9.set(0.0)
     
@@ -278,7 +298,7 @@ class App():
                 try:
                     df = pd.read_excel(self.excel_path, sheet_name = na)
                     data = pd.concat([df['WE(1).Potential (V)'], df['WE(1).Current (A)']*1000.], axis=1)
-                    data = data.iloc[-2453::self.interval]
+                    data = data.iloc[-2452::self.interval]
                     data.columns = ['Potential(V)', 'Current(mA)']
                     self.data_list.append(data)
                 except KeyError:
@@ -315,18 +335,20 @@ class App():
     def peak_rectify(self):
         if self.index == 0:
             self.processData()
-            self.kk = RectifyPeak(self.master, self.scan_sweep, self.selected_sweep, self.example.ox_peak_list, self.example.red_peak_list)
-            self.example.ox_peak_list = self.kk.corrected_ox_peak
-            self.example.red_peak_list = self.kk.corrected_red_peak
+            self.index += 1
+        elif self.index == -1:
+            messagebox.showinfo(title='警告',message='请选择源文件！')
         else:
-            self.kk = RectifyPeak(self.master, self.scan_sweep, self.selected_sweep, self.example.ox_peak_list, self.example.red_peak_list)
-            self.example.ox_peak_list = self.kk.corrected_ox_peak
-            self.example.red_peak_list = self.kk.corrected_red_peak
-        self.index += 1
+            self.index += 1
+        self.kk = RectifyPeak(self.master, self.scan_sweep, self.selected_sweep, self.example.ox_peak_list, self.example.red_peak_list)
+        self.example.ox_peak_list = self.kk.corrected_ox_peak
+        self.example.red_peak_list = self.kk.corrected_red_peak
 
     def preview_peak_plot(self):
         if self.index == 0:
             self.processData()
+        elif self.index == -1:
+            messagebox.showinfo(title='警告',message='请选择源文件！')
         else:
             pass
         color = ['k','mediumslateblue','dimgrey','blueviolet','forestgreen','orchid','dodgerblue','yellowgreen','teal', 
@@ -367,102 +389,183 @@ class App():
         plt.show()
 
     def capac_diff_fit(self):
-        try:
-            if self.index == 0:
-                self.processData()
+        if self.index == 0:
+            self.processData()
+        else:
+            pass
+        self.example.fit()
+        self.fit_data_expand = []
+        # 将example.fit_data_list扩展，没被选中的扫速下填入空DataFrame
+        for yn in self.selected_sweep:
+            if yn != 0:
+                self.fit_data_expand.append(self.example.fit_data_list[self.selected_sweep.index(yn)])
+            elif yn == 0:
+                self.fit_data_expand.append(pd.DataFrame(columns=('Potential(V)', 'Current(mA)')))
+        # 作图------------------------------------------------------------------------------------------------------------
+        color = ['k','mediumslateblue','dimgrey','blueviolet','forestgreen','orchid','dodgerblue','yellowgreen','teal', 
+            'r','mediumseagreen','royalblue','gold','tomato','lightgreen','lightsteelblue','hotpink','darkorchid']
+        label = ['v1', 'v2', 'v3', 'v4', 'v5', 'v6','v7' ,'v8', 'v9']
+        fig,((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3)
+        ax = [ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8,ax9]
+        for i, x, yn in zip(range(0, 9),self.scan_sweep, self.selected_sweep):
+            if yn != 0:
+                try :
+                    ax[i].plot(self.data_list[i]['Potential(V)'], self.data_list[i]['Current(mA)'],
+                    color = color[i],
+                    linestyle = '-',
+                    label = 'pristine '+ label[i],
+                    linewidth = 1.5)
+                    ax[i].plot(self.fit_data_expand[i]['Potential(V)'], self.fit_data_expand[i]['Capacitance Current(mA)'],
+                    color = color[i+9],
+                    linestyle = '-',
+                    label = 'capacitance'+ label[i],
+                    linewidth = 1.5)
+                except IndexError:
+                    messagebox.showinfo(title='警告',message='请检查每个扫速下对应文件是否存在！')
+                ax[i].legend(loc='best')
+                ax[i].set_title('scan sweep = '+str(x)+'mV/s')
+                ax[i].set_xlabel('Potential (V)')
+                ax[i].set_ylabel('Current (mA)')
             else:
-                pass
-            self.example.fit()
-            self.fit_data_expand = []
-            # 将example.fit_data_list扩展，没被选中的扫速下填入空DataFrame
-            for yn in self.selected_sweep:
-                if yn != 0:
-                    self.fit_data_expand.append(self.example.fit_data_list[self.selected_sweep.index(yn)])
-                elif yn == 0:
-                    self.fit_data_expand.append(pd.DataFrame(columns=('Potential(V)', 'Current(mA)')))
-            # 作图------------------------------------------------------------------------------------------------------------
-            color = ['k','mediumslateblue','dimgrey','blueviolet','forestgreen','orchid','dodgerblue','yellowgreen','teal', 
-                'r','mediumseagreen','royalblue','gold','tomato','lightgreen','lightsteelblue','hotpink','darkorchid']
-            label = ['v1', 'v2', 'v3', 'v4', 'v5', 'v6','v7' ,'v8', 'v9']
-            fig,((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3)
-            ax = [ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8,ax9]
-            for i, x, yn in zip(range(0, 9),self.scan_sweep, self.selected_sweep):
-                if yn != 0:
-                    try :
-                        ax[i].plot(self.data_list[i]['Potential(V)'], self.data_list[i]['Current(mA)'],
-                        color = color[i],
-                        linestyle = '-',
-                        label = 'pristine '+ label[i],
-                        linewidth = 1.5)
-                        ax[i].plot(self.fit_data_expand[i]['Potential(V)'], self.fit_data_expand[i]['Capacitance Current(mA)'],
-                        color = color[i+9],
-                        linestyle = '-',
-                        label = 'fit '+ label[i],
-                        linewidth = 1.5)
-                    except IndexError:
-                        messagebox.showinfo(title='警告',message='请检查每个扫速下对应文件是否存在！')
-                    ax[i].legend(loc='best')
-                    ax[i].set_title('scan sweep = '+str(x)+'mV/s')
-                    ax[i].set_xlabel('Potential (V)')
-                    ax[i].set_ylabel('Current (mA)')
-                else:
-                    continue
-            plt.show()
-        except AttributeError:
-            messagebox.showinfo(title='警告',message='结果为空，请重新选择源文件！')
+                continue
+        plt.show()
 
     def save_Cfit_data(self):
-        # try:
-        if True:
+        if self.fit_data_expand:
             save_path = filedialog.asksaveasfilename(title='保存文件', 
             filetypes=[("office Excel", "*.xls")], # 只处理的文件类型
-            initialdir='d:/')
-            writer = pd.ExcelWriter(save_path) 
-            for fit_data, v in zip(self.fit_data_expand, self.scan_rate):
-                if v != 0:
-                    fit_data.to_excel(writer, sheet_name=str(v))
-            writer.save()
-            writer.close()
+            initialdir='/Users/hsh/Desktop/')
+            # writer = pd.ExcelWriter(save_path) 
+            with pd.ExcelWriter(save_path) as writer:
+                for fit_data, orig_data, v in zip(self.fit_data_expand, self.data_list, self.scan_rate):
+                    if v != 0:
+                        pd.concat([fit_data, orig_data['Current(mA)']], axis=1).to_excel(writer, sheet_name=str(v))
+            # writer.save()
+            # writer.close()
         else:
-            messagebox.showinfo(title='警告',message='结果为空，请重新选择源文件！')
-        # except ValueError:
-        #     messagebox.showinfo(title='警告',message='结果为空，请先进行拟合或重新选择源文件！')
+            yon = messagebox.askquestion(title='提示',message='结果为空，是否先进行数据拟合？')
+            if yon:
+                self.capac_diff_fit()
+            else:
+                pass
+
+    def capac_diff_bar(self):
+        capacitance_list = []
+        total_capacity_list = []
+        if self.fit_data_expand:
+            for fit_data, orig_data, v in zip(self.fit_data_expand, self.data_list, self.scan_rate):
+                c_bar, total = 0., 0.
+                if v != 0:
+                    rsl = pd.concat([fit_data, orig_data['Current(mA)']], axis=1).values
+                    for i in range(0, len(fit_data)):
+                        if i < (len(fit_data) - 1):
+                            c_bar += abs((rsl[i+1][0] - rsl[i][0])*(rsl[i+1][1] - rsl[i][1]))
+                            total += abs((rsl[i+1][0] - rsl[i][0])*(rsl[i+1][2] - rsl[i][2]))
+                        elif i == (len(fit_data) - 1):
+                            c_bar += abs((rsl[0][0] - rsl[i][0])*(rsl[0][1] - rsl[i][1]))
+                            total += abs((rsl[0][0] - rsl[i][0])*(rsl[0][2] - rsl[i][2]))
+                    capacitance_list.append(c_bar)
+                    total_capacity_list.append(total)
+                elif v == 0:
+                    capacitance_list.append(c_bar)
+                    total_capacity_list.append(total)
+            # ====================================================================================
+            sv = [v for v in self.scan_rate if v != 0]
+            yy = len(sv)
+            vv = np.linspace(0,yy-1,yy)
+            capacitance = np.array([c for c in capacitance_list if c != 0])
+            total_capacity = np.array([t for t in total_capacity_list if t != 0])
+            self.c_ratio = capacitance / total_capacity * 100
+            self.d_ratio = 100 - self.c_ratio
+            self.bar_data = pd.concat([pd.Series(vv), pd.Series(self.c_ratio), pd.Series(self.d_ratio), pd.Series(np.array(sv))], axis=1)
+            self.bar_data.columns = ('sweep when plot', 'Capacitance ratio', 'Diffusion ratio', 'real scan sweep')
+
+            fig,ax = plt.subplots()
+            plt.bar(vv, self.c_ratio, color='#6495ED', label='Capacitance')
+            plt.bar(vv, self.d_ratio, bottom=self.c_ratio, color='#A9A9A9', label='Diffusion')
+            plt.xticks([i for i in vv], sv)
+            ax.set_ylabel('Contribution ratio (%)')
+            ax.set_xlabel('Sweep rate (mV/s)')
+            ax.set_ylim(0, 125)
+            ax.legend(loc='best')
+            # box = {
+            # 'facecolor':'.99',
+            # 'edgecolor':'w',
+            # 'boxstyle':'round'
+            # }
+            for i in range(0, yy):
+                ax.text(vv[i] - 0.5, 102, str(int(100 * self.c_ratio[i]) / 100))#, bbox = box)
+            plt.show()
+        else:
+            yon = messagebox.askquestion(title='提示',message='还未进行数据拟合，是否拟合？')
+            if yon:
+                self.capac_diff_fit()
+            else:
+                pass
+
+    def save_CD_bar(self):
+        if self.bar_data.empty == False:
+            save_bar_path = filedialog.asksaveasfilename(title='保存文件', 
+                filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
+                initialdir='/Users/hsh/Desktop/')
+            self.bar_data.to_csv(save_bar_path + '.csv')
+        else:
+            messagebox.showinfo(title='警告',message='结果为空！')
 
     def interval_set(self):
         # 调用askinteger函数生成一个让用户输入整数的对话框
         self.interval = simpledialog.askinteger('设置取点间隔', '即每n个点取一个,n:',
-            initialvalue=1, minvalue=1, maxvalue=200)
-
-    def capac_diff_bar(self):
-        pass
-
-    def save_bar(self):
-        pass
-
-    def select_color(self):
-
-        self.rgb = colorchooser.askcolor(parent=self.master, title='选择线条颜色',
-            color = 'black')
-
-    def preview(self):
-        pass
-
-    def plot_selected(self):
-        pass
-
-    def plot_all_fit_result(self):
-        pass
-
-    def plot_bar(self):
-        pass
+            initialvalue=self.interval, minvalue=1, maxvalue=200)
 
     def plot_avb(self):
-        pass
+        if self.index == 0:
+            self.processData()
+        elif self.index == -1:
+            messagebox.showinfo(title='警告',message='请选择源文件！')
+        else:
+            pass
+        self.example.avb()
+        sv = [v for v in self.scan_rate if v != 0]
+        anode_I = [ia.iloc[0, 1] for ia in self.example.ox_peak_list if ia.empty == False]
+        cathode_I = [ic.iloc[0, 1] for ic in self.example.red_peak_list if ic.empty == False]
+        y_a = self.example.anode_avb[0] * np.log10(sv) + self.example.anode_avb[1]
+        y_c = self.example.cathode_avb[0] * np.log10(sv) + self.example.cathode_avb[1]
+        self.avb_data = pd.concat([pd.Series(np.array(sv)), pd.Series(np.log10(sv)), 
+            pd.Series(np.log10(anode_I)), pd.Series(np.log10(cathode_I)), 
+            pd.Series(y_a), pd.Series(y_c)], axis=1)
+        self.avb_data.columns = ('scan sweep(mV/s)', 'lg(scan sweep)', 'lg(Ox peak)', 'lg(Red peak)', 'lg(fit Ox)', 'lg(fit Red)')
+        fig,ax = plt.subplots()
+        plt.plot(np.log10(sv), y_a, color='r', label='anode')
+        plt.plot(np.log10(sv), y_c, color='g', label='cathode')
+        plt.plot(np.log10(sv), np.log10(anode_I), 'o')
+        plt.plot(np.log10(sv), np.log10(cathode_I), '+')
+
+        ax.set_ylabel('log(i)/(A)')
+        ax.set_xlabel('log(v)/(mV/s')
+        # ax.set_ylim(0, 125)
+        ax.legend(loc='best')
+        ax.text(0, 1.6, 'anode_slop=' + str(int(self.example.anode_avb[0] * 100) / 100))
+        ax.text(0, 1.4, 'cathode_slop=' + str(int(self.example.cathode_avb[0] * 100) / 100))
+        plt.show()
+
+    def save_avb(self):
+        if self.avb_data.empty == False:
+            save_avb_path = filedialog.asksaveasfilename(title='保存文件', 
+                filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
+                initialdir='/Users/hsh/Desktop/')
+            self.avb_data.to_csv(save_avb_path + '.csv')
+        else:
+            messagebox.showinfo(title='警告',message='结果为空！')
 
     def plot_Dions(self):
         pass
 
+    def select_color(self):
+        self.rgb = colorchooser.askcolor(parent=self.master, title='选择线条颜色',
+            color = 'black')
+
     # 自定义对话框类，继承Toplevel------------------------------------------------------------------------------------------
+    # 创建弹窗，用于手动校正各扫速下的峰值坐标
 class RectifyPeak(Toplevel):
     # 定义构造方法
     def __init__(self, parent, scan_sweep, selected_sweep, ox_peak_list, red_peak_list, title = '峰值校正', modal=False):
