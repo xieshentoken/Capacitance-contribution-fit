@@ -39,17 +39,17 @@ class Orz():
     def avb(self):
         if len(self.drop0_scan_rate) == len(self.drop0_data_list):
             self.log_ox_peak1 = [np.log10(abs(c.iloc[0,1])) for c in self.ox_peak_list if c.empty == False]
-            self.anode_avb = np.polyfit(np.log10(self.scan_rate), self.log_ox_peak1, 1)
+            self.anode_avb = np.polyfit(np.log10(self.drop0_scan_rate), self.log_ox_peak1, 1)
             self.log_red_peak1 = [np.log10(abs(c.iloc[0,1])) for c in self.red_peak_list if c.empty == False]
-            self.cathode_avb = np.polyfit(np.log10(self.scan_rate), self.log_red_peak1, 1)
+            self.cathode_avb = np.polyfit(np.log10(self.drop0_scan_rate), self.log_red_peak1, 1)
 
     # 根据Randles-Sevcik方程拟合离子扩散系数--------------------------------------------------
     def sqrt_D(self):
         if len(self.drop0_scan_rate) == len(self.drop0_data_list):
             self.ox_peak1 = [c.iloc[0,1] for c in self.ox_peak_list if c.empty == False]
-            self.anode_D_ions = np.polyfit(np.sqrt(self.scan_rate), self.ox_peak1, 1)[0]
+            self.anode_D_ions = np.polyfit(np.sqrt(self.drop0_scan_rate), self.ox_peak1, 1)[0]
             self.red_peak1 = [c.iloc[0,1] for c in self.red_peak_list if c.empty == False]
-            self.cathode_D_ions = np.polyfit(np.sqrt(self.scan_rate), self.red_peak1, 1)[0]
+            self.cathode_D_ions = np.polyfit(np.sqrt(self.drop0_scan_rate), self.red_peak1, 1)[0]
 
     # 求出每个扫速下电容贡献的电流大小，以dataframe形式储存在self.fit_data_list中，dataframe的三列数据分别为｜电压｜、｜总电流｜、｜电容性电流｜
     def fit(self):
@@ -58,6 +58,7 @@ class Orz():
             i_c = pd.concat([i['Current(mA)'] for i in self.drop0_data_list], axis=1)
             for i in i_c.values:
                 k_c = np.polyfit(np.sqrt(self.drop0_scan_rate), i/np.sqrt(self.drop0_scan_rate), 1)[0]
+                # k_c = np.polyfit(np.sqrt(np.array(self.drop0_scan_rate) / 1000), i/1000/np.sqrt(np.array(self.drop0_scan_rate) / 1000), 1)[0]
                 k_c_list.append(k_c)
             for data, v in zip(self.drop0_data_list, self.drop0_scan_rate):
                 fit_data = pd.concat([data['Potential(V)'],pd.Series(np.array(k_c_list) * v)], axis=1)
