@@ -531,7 +531,7 @@ class App():
         else:
             pass
         try:
-            self.example.sqrt_D()
+            self.example.avb()
         except TypeError:
             messagebox.showinfo(title='警告',message='自动寻峰出错，请手动校正峰值。')
         sv = [v for v in self.scan_rate if v != 0]
