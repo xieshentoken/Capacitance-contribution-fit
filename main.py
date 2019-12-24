@@ -1,22 +1,19 @@
-import os
 import re
 import sys
-import time
 from collections import OrderedDict
-from itertools import permutations
 from tkinter import *
-from tkinter import filedialog, messagebox, simpledialog, ttk
+from tkinter import colorchooser, filedialog, messagebox, simpledialog, ttk
 
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scipy.signal as signal
+import xlrd
 
 from add_GUI import App
 from func_XX import Orz
-
-
 
 
 def main():
