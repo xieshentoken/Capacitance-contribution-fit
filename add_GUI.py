@@ -1,7 +1,5 @@
-import os
 import re
 import sys
-import time
 from collections import OrderedDict
 from itertools import permutations
 from tkinter import *
