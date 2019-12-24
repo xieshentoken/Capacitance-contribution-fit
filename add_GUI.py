@@ -59,14 +59,14 @@ class App():
             command = self.preview_peak_plot, 
             activebackground='black', activeforeground='white')
         preview_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
-        work_button = Button(fm2, text = 'Work', 
+        work_button = Button(fm2, text = 'Peak Rectify', 
             bd=3, width = 10, height = 1, 
-            command = None, 
+            command = self.peak_rectify, 
             activebackground='black', activeforeground='white')
         work_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
-        save_button = Button(fm2, text = 'Save', 
+        save_button = Button(fm2, text = 'New Path', 
             bd=3, width = 10, height = 1, 
-            command = None, 
+            command = self.new_path, 
             activebackground='black', activeforeground='white')
         save_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
     #---------------------------------------------------------------------------------------
@@ -128,24 +128,23 @@ class App():
     # 创建第四个容器
         fm3 = Frame(self.master)
         fm3.pack(side=TOP, fill=BOTH, expand=YES)
-        plot_fit_result_button = Button(fm3, text = 'Plot selected', 
+        plot_fit_result_button = Button(fm3, text = 'Capacitance-Diffusion Fit', 
             bd=3, width = 10, height = 1, 
-            command = None, 
+            command = self.capac_diff_fit, 
             activebackground='black', activeforeground='white')
         plot_fit_result_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
         plot_fit_result_button.bind('<Double-2>', None)#self.plot_all_fit_result 
-        plot_bar_button = Button(fm3, text = 'Plot bar', 
-            bd=3, width = 10, height = 1, 
-            command = None, 
-            activebackground='black', activeforeground='white')
-        plot_bar_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)       
-        plot_avb_button = Button(fm3, text = 'i=av^b', 
+        plot_bar_button = Button(fm3, text = 'i=av^b', 
             bd=3, width = 10, height = 1, 
             command = self.plot_avb, 
             activebackground='black', activeforeground='white')
+        plot_bar_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)       
+        plot_avb_button = Button(fm3, text = 'Ip-v^0.5', 
+            bd=3, width = 10, height = 1, 
+            command = self.plot_Dions, 
+            activebackground='black', activeforeground='white')
         plot_avb_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)       
         
-
     # 创建menubar
     def init_menu(self):
         # '初始化菜单的方法'
@@ -170,8 +169,8 @@ class App():
                 ('log(i)-log(v)',(None, self.plot_avb)),
                 ('数据导出 ',(None, self.save_avb)),
                 ('-2',(None, None)),
-                ('Ip-v^1/2',(None, None)),
-                ('数据导出  ',(None, None)),
+                ('Ip-v^1/2',(None, self.plot_Dions)),
+                ('数据导出  ',(None, self.save_Dions)),
                 ('-3',(None, None)),
                 # 二级菜单
                 ('更多', OrderedDict([
@@ -183,9 +182,9 @@ class App():
                 ('-1',(None, None)),
                 ('取点间隔',(None,self.interval_set))
                 ]),
-            OrderedDict([('帮助主题',(None, None)),
+            OrderedDict([('帮助主题',(None, self.original_data_preparation)),
                 ('-1',(None, None)),
-                ('关于', (None, None))]))
+                ('关于', (None, self.show_help))]))
         # 使用Menu创建菜单条
         menubar = Menu(self.master)
         # 为窗口配置菜单条，也就是添加菜单条
@@ -200,7 +199,7 @@ class App():
             tm = items[i]
             # 遍历OrderedDict,默认只遍历它的key
             for label in tm:
-                print(label)
+                # print(label)
                 # 如果value又是OrderedDict，说明是二级菜单
                 if isinstance(tm[label], OrderedDict):
                     # 创建子菜单、并添加子菜单
@@ -246,6 +245,8 @@ class App():
         self.kk = ''
         self.fit_data_expand = []
         self.bar_data = pd.DataFrame()
+        self.avb_data = pd.DataFrame()
+        self.Dions_data = pd.DataFrame()
 
     def open_filename(self):
         self.excel_path = ''
@@ -299,6 +300,7 @@ class App():
                     df = pd.read_excel(self.excel_path, sheet_name = na)
                     data = pd.concat([df['WE(1).Potential (V)'], df['WE(1).Current (A)']*1000.], axis=1)
                     data = data.iloc[-2452::self.interval]
+                    data.round(5)
                     data.columns = ['Potential(V)', 'Current(mA)']
                     self.data_list.append(data)
                 except KeyError:
@@ -396,9 +398,11 @@ class App():
         self.example.fit()
         self.fit_data_expand = []
         # 将example.fit_data_list扩展，没被选中的扫速下填入空DataFrame
+        j = 0
         for yn in self.selected_sweep:
             if yn != 0:
-                self.fit_data_expand.append(self.example.fit_data_list[self.selected_sweep.index(yn)])
+                self.fit_data_expand.append(self.example.fit_data_list[j])
+                j += 1
             elif yn == 0:
                 self.fit_data_expand.append(pd.DataFrame(columns=('Potential(V)', 'Current(mA)')))
         # 作图------------------------------------------------------------------------------------------------------------
@@ -494,7 +498,11 @@ class App():
             # 'boxstyle':'round'
             # }
             for i in range(0, yy):
-                ax.text(vv[i] - 0.5, 102, str(int(100 * self.c_ratio[i]) / 100))#, bbox = box)
+                try:
+                    ax.text(vv[i] - 0.5, 102, str(int(100 * self.c_ratio[i]) / 100))#, bbox = box)
+                except ValueError:
+                    break
+                    messagebox.askquestion(title='提示',message='拟合结果不可靠，请选择合适数据或扫速。')
             plt.show()
         else:
             yon = messagebox.askquestion(title='提示',message='还未进行数据拟合，是否拟合？')
@@ -524,28 +532,36 @@ class App():
             messagebox.showinfo(title='警告',message='请选择源文件！')
         else:
             pass
-        self.example.avb()
+        try:
+            self.example.sqrt_D()
+        except TypeError:
+            messagebox.showinfo(title='警告',message='自动寻峰出错，请手动校正峰值。')
         sv = [v for v in self.scan_rate if v != 0]
         anode_I = [ia.iloc[0, 1] for ia in self.example.ox_peak_list if ia.empty == False]
         cathode_I = [ic.iloc[0, 1] for ic in self.example.red_peak_list if ic.empty == False]
         y_a = self.example.anode_avb[0] * np.log10(sv) + self.example.anode_avb[1]
         y_c = self.example.cathode_avb[0] * np.log10(sv) + self.example.cathode_avb[1]
+        # 将数据保存在一个DataFrame中=================================================================================================
         self.avb_data = pd.concat([pd.Series(np.array(sv)), pd.Series(np.log10(sv)), 
-            pd.Series(np.log10(anode_I)), pd.Series(np.log10(cathode_I)), 
+            pd.Series(np.log10(np.abs(anode_I))), pd.Series(np.log10(np.abs(cathode_I))), 
             pd.Series(y_a), pd.Series(y_c)], axis=1)
         self.avb_data.columns = ('scan sweep(mV/s)', 'lg(scan sweep)', 'lg(Ox peak)', 'lg(Red peak)', 'lg(fit Ox)', 'lg(fit Red)')
+        # ==========================================================================================================================
         fig,ax = plt.subplots()
         plt.plot(np.log10(sv), y_a, color='r', label='anode')
         plt.plot(np.log10(sv), y_c, color='g', label='cathode')
-        plt.plot(np.log10(sv), np.log10(anode_I), 'o')
-        plt.plot(np.log10(sv), np.log10(cathode_I), '+')
+        plt.plot(np.log10(sv), np.log10(np.abs(anode_I)), 'o')
+        plt.plot(np.log10(sv), np.log10(np.abs(cathode_I)), '+')
 
-        ax.set_ylabel('log(i)/(A)')
-        ax.set_xlabel('log(v)/(mV/s')
-        # ax.set_ylim(0, 125)
+        ax.set_ylabel('log(i)/(mA)')
+        ax.set_xlabel('log(v)/(mV/s)')
         ax.legend(loc='best')
-        ax.text(0, 1.6, 'anode_slop=' + str(int(self.example.anode_avb[0] * 100) / 100))
-        ax.text(0, 1.4, 'cathode_slop=' + str(int(self.example.cathode_avb[0] * 100) / 100))
+        text_x = ax.get_xlim()[1] - ax.get_xlim()[0]
+        text_y = ax.get_ylim()[1] - ax.get_ylim()[0]
+        ax.text(ax.get_xlim()[0] + text_x  *0.25, ax.get_ylim()[0] + text_y * 0.75, 
+            'anode_slop=' + str(int(self.example.anode_avb[0] * 100) / 100))
+        ax.text(ax.get_xlim()[0] + text_x * 0.25, ax.get_ylim()[0] + text_y * 0.65, 
+            'cathode_slop=' + str(int(self.example.cathode_avb[0] * 100) / 100))
         plt.show()
 
     def save_avb(self):
@@ -558,7 +574,60 @@ class App():
             messagebox.showinfo(title='警告',message='结果为空！')
 
     def plot_Dions(self):
-        pass
+        if self.index == 0:
+            self.processData()
+        elif self.index == -1:
+            messagebox.showinfo(title='警告',message='请选择源文件！')
+        else:
+            pass
+        try:
+            self.example.sqrt_D()
+        except TypeError:
+            messagebox.showinfo(title='警告',message='自动寻峰出错，请手动校正峰值。')
+        sv = [v for v in self.scan_rate if v != 0]
+        anode_I = self.example.ox_peak1
+        cathode_I = self.example.red_peak1
+        y_a = self.example.anode_D_ions * np.sqrt(sv)
+        y_c = self.example.cathode_D_ions * np.sqrt(sv)
+        # 将数据保存在一个DataFrame中=================================================================================================
+        self.Dions_data = pd.concat([pd.Series(np.array(sv)), pd.Series(np.sqrt(sv)), 
+            pd.Series(np.array(anode_I)), pd.Series(np.array(cathode_I)), 
+            pd.Series(y_a), pd.Series(y_c)], axis=1)
+        self.Dions_data.columns = ('scan sweep(mV/s)', 'sqrt(scan sweep)', 'Ox peak', 'Red peak', 'k*(vD)^0.5 Ox', 'k*(vD)^0.5 Red')
+        # ==========================================================================================================================
+        fig,ax = plt.subplots()
+        plt.plot(np.sqrt(sv), y_a, color='#e4145e', label='anode')
+        plt.plot(np.sqrt(sv), y_c, color='#35ca8e', label='cathode')
+        plt.plot(np.sqrt(sv), anode_I, 'o')
+        plt.plot(np.sqrt(sv), cathode_I, '+')
+
+        ax.set_ylabel('Ip/(mA)')
+        ax.set_xlabel('sqrt(v)/(mV/s)^0.5')
+        ax.legend(loc='best')
+        text_x = ax.get_xlim()[1] - ax.get_xlim()[0]
+        text_y = ax.get_ylim()[1] - ax.get_ylim()[0]
+        ax.text(ax.get_xlim()[0] + text_x  *0.25, ax.get_ylim()[0] + text_y * 0.75, 
+            'anode_k*D^0.5=' + str(int(self.example.anode_D_ions * 100) / 100))
+        ax.text(ax.get_xlim()[0] + text_x * 0.25, ax.get_ylim()[0] + text_y * 0.65, 
+            'cathode_k*D^0.5=' + str(int(self.example.cathode_D_ions * 100) / 100))
+        plt.show()
+
+    def save_Dions(self):
+        if self.Dions_data.empty == False:
+            save_Dions_path = filedialog.asksaveasfilename(title='保存文件', 
+                filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
+                initialdir='/Users/hsh/Desktop/')
+            self.Dions_data.to_csv(save_Dions_path + '.csv')
+        else:
+            messagebox.showinfo(title='警告',message='结果为空！')
+
+    def original_data_preparation(self):
+        messagebox.showinfo(title='原始数据准备',message='根据扫速大小，依次将不同扫速下的数据（最多9个）分别保存在同一个Excel的不同Sheet中即可。')
+
+    def show_help(self):
+        messagebox.showinfo(title='关于',message='离子导率由Randles-Sevcik方程给出：\n' +
+            'Ip = 0.4463*nFA*(nF/RT)^0.5 *Δc0*(vDions)^0.5\n' + 'n：反应过程参与电子数\n' + 
+            'A：电化学活性面积\n' + 'Δc0：反应前后离子浓度的变化量\n' + 'v：扫描速率')
 
     def select_color(self):
         self.rgb = colorchooser.askcolor(parent=self.master, title='选择线条颜色',
