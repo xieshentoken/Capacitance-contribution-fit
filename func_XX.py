@@ -28,12 +28,15 @@ class Orz():
             if data.empty == False:
                 max_index = signal.argrelextrema(data['Current(mA)'].values, np.greater)[0]
                 min_index = signal.argrelextrema(-1*data['Current(mA)'].values, np.greater)[0]
-                self.ox_peak_list.append(data.iloc[max_index].sort_values(by=['Current(mA)'],ascending=False).iloc[:2])
-                self.red_peak_list.append(data.iloc[min_index].sort_values(by=['Current(mA)'],ascending=True).iloc[:2])
+                ox = data.iloc[max_index].sort_values(by=['Current(mA)'],ascending=False).iloc[:2]
+                ox.round(2)
+                self.ox_peak_list.append(ox)
+                red = data.iloc[min_index].sort_values(by=['Current(mA)'],ascending=True).iloc[:2]
+                red.round(2)
+                self.red_peak_list.append(red)
             else:
                 self.ox_peak_list.append(pd.DataFrame(columns=('Potential(V)', 'Current(mA)')))
                 self.red_peak_list.append(pd.DataFrame(columns=('Potential(V)', 'Current(mA)')))
-
 
     # 根据公式: i=a*v^b, 拟合出tuple(b, a)储存在self.anode_avb和self.cathode_avb中
     def avb(self):
