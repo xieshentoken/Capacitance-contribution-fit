@@ -18,7 +18,7 @@ from func_XX import Orz
 
 def main():
     root = Tk()
-    root.title("A little App")
+    root.title("Nacher")
     App(root)
     root.mainloop()
 
