@@ -21,6 +21,7 @@ class App():
         self.initWidgets()
 
         self.init_scan_sweep()
+        self.test_window = 3.
         self.interval = 1
         self.index = -1
         self.fit_data_expand = []
@@ -178,6 +179,8 @@ class App():
             OrderedDict([('峰值预览',(None,self.preview_peak_plot)),
                 ('峰值校正',(None,self.peak_rectify)),
                 ('-1',(None, None)),
+                ('电化学窗口大小',(None,self.test_window_set)),
+                ('-2',(None, None)),
                 ('取点间隔',(None,self.interval_set))
                 ]),
             OrderedDict([('帮助主题',(None, self.original_data_preparation)),
@@ -231,12 +234,13 @@ class App():
     def new_project(self):
         self.new_path()
         self.init_scan_sweep()
+        self.test_window = 3.
+        self.interval = 1
 
     # 新建路径
     def new_path(self):
         self.index = -1
         self.excel_adr.set('')
-        self.interval = 1
         self.data_list = []
         self.scan_rate = []
         self.example = ''
@@ -290,6 +294,7 @@ class App():
         self.scan_rate = []
         file = pd.ExcelFile(self.excel_path)
         scan_names = file.sheet_names
+        dots_num = int(816.*self.test_window)
         i = 1
         for na, x, yn in zip(scan_names, self.scan_sweep, self.selected_sweep):
             if (x != 0)and(yn != 0):
@@ -297,8 +302,8 @@ class App():
                 try:
                     df = pd.read_excel(self.excel_path, sheet_name = na)
                     data = pd.concat([df['WE(1).Potential (V)'], df['WE(1).Current (A)']*1000.], axis=1)
-                    data = data.iloc[-2452::self.interval]
-                    data.round(5)
+                    data = data.iloc[-dots_num::self.interval]
+                    data.index = range(0, int(dots_num/self.interval))
                     data.columns = ['Potential(V)', 'Current(mA)']
                     self.data_list.append(data)
                 except KeyError:
@@ -499,8 +504,8 @@ class App():
                 try:
                     ax.text(vv[i] - 0.5, 102, str(int(100 * self.c_ratio[i]) / 100))#, bbox = box)
                 except ValueError:
-                    break
                     messagebox.askquestion(title='提示',message='拟合结果不可靠，请选择合适数据或扫速。')
+                    break
             plt.show()
         else:
             yon = messagebox.askquestion(title='提示',message='还未进行数据拟合，是否拟合？')
@@ -517,6 +522,10 @@ class App():
             self.bar_data.to_csv(save_bar_path + '.csv')
         else:
             messagebox.showinfo(title='警告',message='结果为空！')
+
+    def test_window_set(self):
+        self.test_window = simpledialog.askfloat('设置电化学测试窗口大小', '电压上下限差(V): \n(408 points/voltage)',
+            initialvalue=self.test_window, minvalue=1, maxvalue=200)
 
     def interval_set(self):
         # 调用askinteger函数生成一个让用户输入整数的对话框
@@ -585,8 +594,8 @@ class App():
         sv = [v for v in self.scan_rate if v != 0]
         anode_I = self.example.ox_peak1
         cathode_I = self.example.red_peak1
-        y_a = self.example.anode_D_ions * np.sqrt(sv)
-        y_c = self.example.cathode_D_ions * np.sqrt(sv)
+        y_a = self.example.anode_D_ions[0] * np.sqrt(sv) + self.example.anode_D_ions[1]
+        y_c = self.example.cathode_D_ions[0] * np.sqrt(sv) + self.example.cathode_D_ions[1]
         # 将数据保存在一个DataFrame中=================================================================================================
         self.Dions_data = pd.concat([pd.Series(np.array(sv)), pd.Series(np.sqrt(sv)), 
             pd.Series(np.array(anode_I)), pd.Series(np.array(cathode_I)), 
@@ -605,9 +614,9 @@ class App():
         text_x = ax.get_xlim()[1] - ax.get_xlim()[0]
         text_y = ax.get_ylim()[1] - ax.get_ylim()[0]
         ax.text(ax.get_xlim()[0] + text_x  *0.25, ax.get_ylim()[0] + text_y * 0.75, 
-            'anode_k*D^0.5=' + str(int(self.example.anode_D_ions * 100) / 100))
+            'anode_k*D^0.5=' + str(int(self.example.anode_D_ions[0] * 100) / 100))
         ax.text(ax.get_xlim()[0] + text_x * 0.25, ax.get_ylim()[0] + text_y * 0.65, 
-            'cathode_k*D^0.5=' + str(int(self.example.cathode_D_ions * 100) / 100))
+            'cathode_k*D^0.5=' + str(int(self.example.cathode_D_ions[0] * 100) / 100))
         plt.show()
 
     def save_Dions(self):
@@ -686,15 +695,15 @@ class RectifyPeak(Toplevel):
         for yn, up, ip, oxPeak in zip(self.selected_sweep, self.ox_Up, self.ox_Ip, self.ox_peak_list):
             if yn != 0:
                 try:
-                    up.set(oxPeak.iloc[0,0])
-                    ip.set(oxPeak.iloc[0,1])
+                    up.set(float(int(oxPeak.iloc[0,0]*1000)/1000))  # 取三位小数点
+                    ip.set(float(int(oxPeak.iloc[0,1]*1000)/1000))
                 except IndexError:
                     continue
         for yn, up, ip, redPeak in zip(self.selected_sweep, self.red_Up, self.red_Ip, self.red_peak_list):
             if yn != 0:
                 try:
-                    up.set(redPeak.iloc[0,0])
-                    ip.set(redPeak.iloc[0,1])
+                    up.set(float(int(redPeak.iloc[0,0]*1000)/1000))
+                    ip.set(float(int(redPeak.iloc[0,1]*1000)/1000))
                 except IndexError:
                     continue
     # 通过该方法来创建自定义对话框的内容
