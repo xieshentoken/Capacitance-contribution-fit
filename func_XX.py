@@ -28,13 +28,9 @@ class Orz():
             if data.empty == False:
                 max_index = signal.argrelextrema(data['Current(mA)'].values, np.greater)[0]
                 min_index = signal.argrelextrema(-1*data['Current(mA)'].values, np.greater)[0]
-                ox = data.iloc[max_index].sort_values(by=['Current(mA)'],ascending=False).iloc[:2]
-                ox.round(2)
-                self.ox_peak_list.append(ox)
-                red = data.iloc[min_index].sort_values(by=['Current(mA)'],ascending=True).iloc[:2]
-                red.round(2)
-                self.red_peak_list.append(red)
-            else:
+                self.ox_peak_list.append(data.iloc[max_index].sort_values(by=['Current(mA)'],ascending=False).iloc[:2])
+                self.red_peak_list.append(data.iloc[min_index].sort_values(by=['Current(mA)'],ascending=True).iloc[:2])
+            elif data.empty:
                 self.ox_peak_list.append(pd.DataFrame(columns=('Potential(V)', 'Current(mA)')))
                 self.red_peak_list.append(pd.DataFrame(columns=('Potential(V)', 'Current(mA)')))
 
@@ -50,9 +46,9 @@ class Orz():
     def sqrt_D(self):
         if len(self.drop0_scan_rate) == len(self.drop0_data_list):
             self.ox_peak1 = [c.iloc[0,1] for c in self.ox_peak_list if c.empty == False]
-            self.anode_D_ions = np.polyfit(np.sqrt(self.drop0_scan_rate), self.ox_peak1, 1)[0]
+            self.anode_D_ions = np.polyfit(np.sqrt(self.drop0_scan_rate), self.ox_peak1, 1)
             self.red_peak1 = [c.iloc[0,1] for c in self.red_peak_list if c.empty == False]
-            self.cathode_D_ions = np.polyfit(np.sqrt(self.drop0_scan_rate), self.red_peak1, 1)[0]
+            self.cathode_D_ions = np.polyfit(np.sqrt(self.drop0_scan_rate), self.red_peak1, 1)
 
     # 求出每个扫速下电容贡献的电流大小，以dataframe形式储存在self.fit_data_list中，dataframe的三列数据分别为｜电压｜、｜总电流｜、｜电容性电流｜
     def fit(self):
@@ -64,7 +60,7 @@ class Orz():
                 # k_c = np.polyfit(np.sqrt(np.array(self.drop0_scan_rate) / 1000), i/1000/np.sqrt(np.array(self.drop0_scan_rate) / 1000), 1)[0]
                 k_c_list.append(k_c)
             for data, v in zip(self.drop0_data_list, self.drop0_scan_rate):
-                fit_data = pd.concat([data['Potential(V)'],pd.Series(np.array(k_c_list) * v)], axis=1)
+                fit_data = pd.concat([data['Potential(V)'], pd.Series(np.array(k_c_list) * v)], axis=1)
                 fit_data.columns = ('Potential(V)', 'Capacitance Current(mA)')
                 # data['Capacitance Current(mA)'] = pd.Series(np.array(k_c_list) * v)
                 self.fit_data_list.append(fit_data)
