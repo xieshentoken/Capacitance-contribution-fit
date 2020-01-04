@@ -443,7 +443,7 @@ class App():
             filetypes=[("office Excel", "*.xls")], # 只处理的文件类型
             initialdir='/Users/hsh/Desktop/')
             # writer = pd.ExcelWriter(save_path) 
-            with pd.ExcelWriter(save_path) as writer:
+            with pd.ExcelWriter(save_path+'.xls') as writer:
                 for fit_data, orig_data, v in zip(self.fit_data_expand, self.data_list, self.scan_rate):
                     if v != 0:
                         pd.concat([fit_data, orig_data['Current(mA)']], axis=1).to_excel(writer, sheet_name=str(v))
