@@ -225,11 +225,12 @@ class App():
                         command=tm[label][1], compound=LEFT)
     # 生成所有需要的图标
     def init_icons(self):
-        self.master.filenew_icon = PhotoImage(name='E:/pydoc/tkinter/images/filenew.png')
-        self.master.fileopen_icon = PhotoImage(name='E:/pydoc/tkinter/images/fileopen.png')
-        self.master.save_icon = PhotoImage(name='E:/pydoc/tkinter/images/save.png')
-        self.master.saveas_icon = PhotoImage(name='E:/pydoc/tkinter/images/saveas.png')
-        self.master.signout_icon = PhotoImage(name='E:/pydoc/tkinter/images/signout.png')
+        pass
+        # self.master.filenew_icon = PhotoImage(file=r"E:\pydoc\Nacher\E N D\image\filenew.png")
+        # self.master.fileopen_icon = PhotoImage(name='E:/pydoc/tkinter/images/fileopen.png')
+        # self.master.save_icon = PhotoImage(name='E:/pydoc/tkinter/images/save.png')
+        # self.master.saveas_icon = PhotoImage(name='E:/pydoc/tkinter/images/saveas.png')
+        # self.master.signout_icon = PhotoImage(name='E:/pydoc/tkinter/images/signout.png')
     # 新建项目
     def new_project(self):
         self.new_path()
@@ -255,20 +256,20 @@ class App():
         # 调用askopenfile方法获取打开的文件名
         self.excel_path = filedialog.askopenfilename(title='打开文件',
             filetypes=[('Excel文件', '*.xlsx'), ('Excel 文件', '*.xls')], # 只处理的文件类型
-            initialdir='/Users/hsh/Documents/py/recoding/C-fit2.0/SeTCoMIPPy600') # 初始目录
+            initialdir='G:/测试结果\CV-EIS/') # 初始目录
         self.excel_adr.set(self.excel_path)
         self.index = 0
 
     def init_scan_sweep(self):
         self.v1.set(0.1)
         self.v2.set(0.2)
-        self.v3.set(0.5)
-        self.v4.set(1.0)
-        self.v5.set(2.0)
-        self.v6.set(5.0)
-        self.v7.set(10.0)
-        # self.v8.set(0.0)
-        # self.v9.set(0.0)
+        self.v3.set(0.4)
+        self.v4.set(0.8)
+        self.v5.set(1.6)
+        self.v6.set(2.0)
+        self.v7.set(4.0)
+        self.v8.set(8.0)
+        self.v9.set(10.)
 
         self.var1.set(1)
         self.var2.set(1)
@@ -277,8 +278,8 @@ class App():
         self.var5.set(1)
         self.var6.set(1)
         self.var7.set(1)
-        # self.v8.set(0.0)
-        # self.v9.set(0.0)
+        self.var8.set(0)
+        self.var9.set(0)
     
     def get_scan_rate(self):
         self.scan_sweep = [self.v1.get(), self.v2.get(), self.v3.get(), 
@@ -309,8 +310,11 @@ class App():
                 except KeyError:
                     messagebox.showinfo(title='警告',message='文件读取错误:检查是否包含空Sheet。')
                     continue
-                except xlrd.biffh.XLRDError:
-                    messagebox.showinfo(title='警告',message='文件读取错误:工作表需以“Sheet”加数字命名。')
+                # except xlrd.biffh.XLRDError:
+                #     messagebox.showinfo(title='警告',message='文件读取错误:工作表需以“Sheet”加数字命名。')
+                except ValueError:
+                    messagebox.showinfo(title='警告',message='文件读取错误:请确认电化学窗口。')
+                    break
                 finally:
                     pass
                 i += 1
@@ -372,6 +376,7 @@ class App():
                     # ax[i].legend(loc='best')
                 except IndexError:
                     messagebox.showinfo(title='警告',message='请检查每个扫速下对应文件是否存在！')
+                    break
                 try:
                     ax[i].annotate('ox peak1', xy=(self.example.ox_peak_list[i].iloc[0,0], self.example.ox_peak_list[i].iloc[0,1]), 
                         xytext=(self.example.ox_peak_list[i].iloc[0,0]-0.5, self.example.ox_peak_list[i].iloc[0,1]),
@@ -434,7 +439,7 @@ class App():
                 ax[i].set_xlabel('Potential (V)')
                 ax[i].set_ylabel('Current (mA)')
             else:
-                continue
+                pass
         plt.show()
 
     def save_Cfit_data(self):
@@ -463,14 +468,18 @@ class App():
             for fit_data, orig_data, v in zip(self.fit_data_expand, self.data_list, self.scan_rate):
                 c_bar, total = 0., 0.
                 if v != 0:
-                    rsl = pd.concat([fit_data, orig_data['Current(mA)']], axis=1).values
-                    for i in range(0, len(fit_data)):
-                        if i < (len(fit_data) - 1):
-                            c_bar += abs((rsl[i+1][0] - rsl[i][0])*(rsl[i+1][1] - rsl[i][1]))
-                            total += abs((rsl[i+1][0] - rsl[i][0])*(rsl[i+1][2] - rsl[i][2]))
-                        elif i == (len(fit_data) - 1):
-                            c_bar += abs((rsl[0][0] - rsl[i][0])*(rsl[0][1] - rsl[i][1]))
-                            total += abs((rsl[0][0] - rsl[i][0])*(rsl[0][2] - rsl[i][2]))
+                    rsl = pd.concat([fit_data, orig_data['Current(mA)']], axis=1)
+                    rsl.sort_index(by='Potential(V)', ascending=True, inplace=True)
+
+                    for i in range(0, len(fit_data)-1):
+                            if (rsl.iloc[i,0]-rsl.iloc[i+1,0]) < 0.0004:
+                                c_bar += abs((rsl.iloc[i,0]-rsl.iloc[i+1,0])*(rsl.iloc[i,1]-rsl.iloc[i+1,1]))
+                                total += abs((rsl.iloc[i,0]-rsl.iloc[i+1,0])*(rsl.iloc[i,2]-rsl.iloc[i+1,2]))
+                            elif (rsl.iloc[i,0]-rsl.iloc[i+1,0]) > 0.0004:
+                                pass
+                            else:
+                                messagebox.showinfo(title='提示',message='读取数据出错，尝试设置取点间隔为1')
+                                break
                     capacitance_list.append(c_bar)
                     total_capacity_list.append(total)
                 elif v == 0:
