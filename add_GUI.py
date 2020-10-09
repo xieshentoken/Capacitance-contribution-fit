@@ -304,7 +304,7 @@ class App():
                     df = pd.read_excel(self.excel_path, sheet_name = na)
                     data = pd.concat([df['WE(1).Potential (V)'], df['WE(1).Current (A)']*1000.], axis=1)
                     data = data.iloc[-dots_num::self.interval]
-                    data.index = range(0, int(dots_num/self.interval))
+                    data.index = range(0, len(data))
                     data.columns = ['Potential(V)', 'Current(mA)']
                     self.data_list.append(data)
                 except KeyError:
