@@ -4,8 +4,10 @@ from collections import OrderedDict
 from tkinter import *
 from tkinter import colorchooser, filedialog, messagebox, simpledialog, ttk
 
+# MacOS下使用这两行，Win下可以注释掉————————————————————
 import matplotlib
 matplotlib.use("TkAgg")
+#——————————————————————————————————
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -18,7 +20,7 @@ from func_XX import Orz
 
 def main():
     root = Tk()
-    root.title("Nacher")
+    root.title("CDfit")
     App(root)
     root.mainloop()
 
