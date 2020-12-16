@@ -127,7 +127,7 @@ class App():
     # 创建第四个容器
         fm3 = Frame(self.master)
         fm3.pack(side=TOP, fill=BOTH, expand=YES)
-        plot_fit_result_button = Button(fm3, text = 'Capacitance-Diffusion Fit', 
+        plot_fit_result_button = Button(fm3, text = 'C D Fit', 
             bd=3, width = 10, height = 1, 
             command = self.capac_diff_fit, 
             activebackground='black', activeforeground='white')
@@ -469,7 +469,8 @@ class App():
                 c_bar, total = 0., 0.
                 if v != 0:
                     rsl = pd.concat([fit_data, orig_data['Current(mA)']], axis=1)
-                    rsl.sort_index(by='Potential(V)', ascending=True, inplace=True)
+                    rsl.sort_values(by='Potential(V)', ascending=True, inplace=True)
+                    # rsl.sort_index(by='Potential(V)', ascending=True, inplace=True)
 
                     for i in range(0, len(fit_data)-1):
                             if (rsl.iloc[i,0]-rsl.iloc[i+1,0]) < 0.0004:
@@ -534,7 +535,7 @@ class App():
 
     def test_window_set(self):
         self.test_window = simpledialog.askfloat('设置电化学测试窗口大小', '电压上下限差(V): \n(408 points/voltage)',
-            initialvalue=self.test_window, minvalue=1, maxvalue=200)
+            initialvalue=self.test_window, minvalue=0.01, maxvalue=200)
 
     def interval_set(self):
         # 调用askinteger函数生成一个让用户输入整数的对话框
