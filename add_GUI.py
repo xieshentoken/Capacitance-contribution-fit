@@ -20,6 +20,7 @@ class App():
         self.master = master
         self.initWidgets()
 
+        self.workspace = 'C:/Users/Administrator/Desktop'
         self.init_scan_sweep()
         self.test_window = 3.
         self.interval = 1
@@ -46,9 +47,12 @@ class App():
             width=24,
             font=('StSong', 20, 'bold'),
             foreground='#8080c0').pack(side=LEFT, ipadx=5, ipady=5)#fill=BOTH, expand=YES)
-        ttk.Button(fm1, text='...',
+        openfile = ttk.Button(fm1, text='...',
             command=self.open_filename # 绑定open_filename方法
-            ).pack(side=LEFT, ipadx=1, ipady=5)
+            )
+        openfile.pack(side=LEFT, ipadx=1, ipady=5)
+        openfile.bind("<Button-2>",self.set_workspace)
+        openfile.bind("<Button-3>",self.set_workspace)
     #-----------------------------------------------------------------------------------
     # 创建第二个容器
         fm2 = Frame(self.master)
@@ -154,7 +158,10 @@ class App():
                 # 每项对应一个菜单项，后面元组第一个元素是菜单图标，
                 # 第二个元素是菜单对应的事件处理函数
                 ('新建', (None, self.new_project)),
+                ('设置工作目录', (None, self.set_workspace)),
                 ('打开', (None, self.open_filename)),
+                ('打开扫速参数文件', (None, self.load_scanPara)),
+                ('保存扫速参数', (None, self.save_scanPara)),
                 ('另存为', OrderedDict([('CSV', (None, None)),
                         ('Excel',(None, None))])),
                 ('-1', (None, None)),
@@ -233,6 +240,7 @@ class App():
         # self.master.signout_icon = PhotoImage(name='E:/pydoc/tkinter/images/signout.png')
     # 新建项目
     def new_project(self):
+        self.workspace = 'C:/Users/Administrator/Desktop'
         self.new_path()
         self.init_scan_sweep()
         self.test_window = 3.
@@ -251,12 +259,16 @@ class App():
         self.avb_data = pd.DataFrame()
         self.Dions_data = pd.DataFrame()
 
-    def open_filename(self):
+    def set_workspace(self, event=None):
+        self.workspace = filedialog.askdirectory(title='设置工作目录',
+            initialdir='C:/Users/Administrator/Desktop')
+
+    def open_filename(self, event=None):
         self.excel_path = ''
         # 调用askopenfile方法获取打开的文件名
         self.excel_path = filedialog.askopenfilename(title='打开文件',
             filetypes=[('Excel文件', '*.xlsx'), ('Excel 文件', '*.xls')], # 只处理的文件类型
-            initialdir='G:/测试结果\CV-EIS/') # 初始目录
+            initialdir=self.workspace) # 初始目录
         self.excel_adr.set(self.excel_path)
         self.index = 0
 
@@ -637,6 +649,34 @@ class App():
             self.Dions_data.to_csv(save_Dions_path + '.csv')
         else:
             messagebox.showinfo(title='警告',message='结果为空！')
+
+    def load_scanPara(self):
+        self.unloadpara_path = filedialog.askopenfilename(title='打开单个文件',
+            filetypes=[("文本文件", "*.txt")], 
+            initialdir=self.workspace)
+        v = [self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8, self.v9]
+        try:
+            with open(self.unloadpara_path) as measurement:
+                unloadpara=[float(y) for y in measurement.readline().split(',') if y!='']
+            for vx, scanvalue in zip(v[:len(unloadpara)], unloadpara):
+                vx.set(scanvalue)
+        except FileNotFoundError:
+            pass
+        except ValueError:
+            messagebox.showinfo(title='提示',message='那是真的NP')
+
+    def save_scanPara(self):
+        parasaving_path = filedialog.asksaveasfilename(title='打开单个文件',
+            filetypes=[("文本文件", "*.txt")], 
+            initialdir='C:/Users/Administrator/Desktop')
+        with open(parasaving_path+'.txt','a') as f:
+        # with open(parasaving_path,'a') as f:   # MacOS环境下用这一行，注释掉上一行
+            try:
+                for x, y in zip(self.scan_sweep, self.selected_sweep):
+                    if x and (y == 1):
+                        f.write(str(x)+',')
+            except AttributeError:
+                messagebox.showinfo(title='提示',message='默认扫描速率，无需保存。')
 
     def original_data_preparation(self):
         messagebox.showinfo(title='原始数据准备',message='根据扫速大小，依次将不同扫速下的数据（最多9个）分别保存在同一个Excel的不同Sheet中即可。')
