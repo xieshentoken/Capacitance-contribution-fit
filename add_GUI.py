@@ -160,8 +160,8 @@ class App():
                 ('新建', (None, self.new_project)),
                 ('设置工作目录', (None, self.set_workspace)),
                 ('打开', (None, self.open_filename)),
-                ('打开扫速参数文件', (None, self.load_scanPara)),
-                ('保存扫速参数', (None, self.save_scanPara)),
+                ('载入扫速参数', (None, self.load_scanPara)),
+                ('导出扫速参数', (None, self.save_scanPara)),
                 ('另存为', OrderedDict([('CSV', (None, None)),
                         ('Excel',(None, None))])),
                 ('-1', (None, None)),
@@ -655,11 +655,15 @@ class App():
             filetypes=[("文本文件", "*.txt")], 
             initialdir=self.workspace)
         v = [self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8, self.v9]
+        sel_v = [self.var1, self.var2, self.var3, self.var4, self.var5, self.var6, self.var7, self.var8, self.var9]
         try:
             with open(self.unloadpara_path) as measurement:
                 unloadpara=[float(y) for y in measurement.readline().split(',') if y!='']
-            for vx, scanvalue in zip(v[:len(unloadpara)], unloadpara):
+            for sv in sel_v:
+                sv.set(0)
+            for vx, sv, scanvalue in zip(v[:len(unloadpara)], sel_v[:len(unloadpara)], unloadpara):
                 vx.set(scanvalue)
+                sv.set(1)
         except FileNotFoundError:
             pass
         except ValueError:
@@ -676,7 +680,7 @@ class App():
                     if x and (y == 1):
                         f.write(str(x)+',')
             except AttributeError:
-                messagebox.showinfo(title='提示',message='默认扫描速率，无需保存。')
+                messagebox.showinfo(title='提示',message='默认扫描速率，不想导出。')
 
     def original_data_preparation(self):
         messagebox.showinfo(title='原始数据准备',message='根据扫速大小，依次将不同扫速下的数据（最多9个）分别保存在同一个Excel的不同Sheet中即可。')
@@ -725,6 +729,7 @@ class RectifyPeak(Toplevel):
         # 让对话框获取焦点
         self.initial_focus.focus_set()
         self.wait_window(self)
+
     def init_var(self):
         self.o_Up1, self.o_Up2, self.o_Up3 = DoubleVar(), DoubleVar(), DoubleVar()
         self.o_Up4, self.o_Up5, self.o_Up6 = DoubleVar(), DoubleVar(), DoubleVar()
@@ -817,7 +822,7 @@ class RectifyPeak(Toplevel):
         # 创建"确定"按钮,位置绑定self.ok_click处理方法
         w = Button(f, text="确定", width=10, command=self.ok_click, default=ACTIVE)
         w.pack(side=LEFT, padx=5, pady=5)
-        # 创建"确定"按钮,位置绑定self.cancel_click处理方法
+        # 创建"取消"按钮,位置绑定self.cancel_click处理方法
         w = Button(f, text="取消", width=10, command=self.cancel_click)
         w.pack(side=LEFT, padx=5, pady=5)
         self.bind("<Return>", self.ok_click)
@@ -846,6 +851,9 @@ class RectifyPeak(Toplevel):
                 corrected = pd.DataFrame(columns=('Potential(V)', 'Current(mA)'))
                 self.corrected_red_peak.append(corrected)
         # print(self.corrected_ox_peak)
+        # for i,data in enumerate(self.corrected_ox_peak):
+        #     if len(data) != 0:
+        #         data.to_csv('C:/Users/Administrator/Desktop/'+str(i)+'.csv')
     def ok_click(self, event=None):
         # print('确定')
         # 如果不能通过校验，让用户重新输入
