@@ -659,23 +659,54 @@ class App():
             messagebox.showinfo(title='警告',message='请选择源文件！')
         else:
             pass
-        self.peak_csv = pd.DataFrame(np.zeros((9,4)), columns=['Ox Potential(V)', 'Ox Current(mA)', 'Red Potential(V)', 'Red Current(mA)'])  
-        self.peak_csv.index = [str(sc)+' mV/s' for sc in self.scan_sweep]
+        self.peak_sheet = pd.DataFrame(np.zeros((9,4)), columns=['Ox Potential(V)', 'Ox Current(mA)', 'Red Potential(V)', 'Red Current(mA)'])  
+        self.peak_sheet.index = [str(sc)+' mV/s' for sc in self.scan_sweep]
         for i, yn in zip(range(0, 9), self.selected_sweep):
             if yn != 0:
-                self.peak_csv.iloc[i,0] = self.example.ox_peak_list[i].iloc[0,0]
-                self.peak_csv.iloc[i,1] = self.example.ox_peak_list[i].iloc[0,1]
-                self.peak_csv.iloc[i,2] = self.example.red_peak_list[i].iloc[0,0]
-                self.peak_csv.iloc[i,3] = self.example.red_peak_list[i].iloc[0,1]
+                self.peak_sheet.iloc[i,0] = self.example.ox_peak_list[i].iloc[0,0]
+                self.peak_sheet.iloc[i,1] = self.example.ox_peak_list[i].iloc[0,1]
+                self.peak_sheet.iloc[i,2] = self.example.red_peak_list[i].iloc[0,0]
+                self.peak_sheet.iloc[i,3] = self.example.red_peak_list[i].iloc[0,1]
             elif yn == 0:
                 pass
-        save_path = filedialog.asksaveasfilename(title='保存文件', 
-                filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
+        save_path = filedialog.asksaveasfilename(title='导出峰值', 
+                filetypes=[("office Excel", "*.xls")], # 只处理的文件类型
                 initialdir='/Users/hsh/Desktop/')
-        self.peak_csv.to_csv(save_path+'.csv')
+        self.peak_sheet.to_excel(save_path+'.xls')
 
     def load_peak(self):
-        pass
+        if self.index == 0:
+            self.processData()
+        elif self.index == -1:
+            messagebox.showinfo(title='警告',message='请选择源文件！')
+        else:
+            pass
+        loaded_ox_peak = []
+        loaded_red_peak = []
+        v = [self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8, self.v9]
+        sel_v = [self.var1, self.var2, self.var3, self.var4, self.var5, self.var6, self.var7, self.var8, self.var9]
+        for sc_val, sc_sel in zip(v, sel_v):
+            sc_val.set(0.0)
+            sc_sel.set(0)
+        peak_path = filedialog.askopenfilename(title='载入峰值', 
+            filetypes=[("office Excel", "*.xls")], # 只处理的文件类型
+            initialdir=self.workspace)
+        self.peak_sheet = pd.read_excel(peak_path)
+        scan_num = len(self.peak_sheet)
+        for i, scan_str, sc_val, sc_sel in zip(range(0, scan_num), self.peak_sheet.index, v[:scan_num], sel_v[:scan_num]):
+            if all(self.peak_sheet.loc[scan_str] == np.array([0.0,0.0,0.0,0.0]))==False:
+                loaded_ox = pd.DataFrame([[self.peak_sheet.iloc[i,0], self.peak_sheet.iloc[i,1]]],columns=('Potential(V)', 'Current(mA)'))
+                loaded_red = pd.DataFrame([[self.peak_sheet.iloc[i,2], self.peak_sheet.iloc[i,3]]],columns=('Potential(V)', 'Current(mA)'))
+                loaded_ox_peak.append(loaded_ox)
+                loaded_red_peak.append(loaded_red)
+                sc_val.set(scan_str.split(' ')[0])
+                sc_sel.set(1)
+            else:
+                loaded = pd.DataFrame(columns=('Potential(V)', 'Current(mA)'))
+                loaded_ox_peak.append(loaded)
+                loaded_red_peak.append(loaded)
+        self.example.ox_peak_list = loaded_ox_peak
+        self.example.red_peak_list = loaded_red_peak
 
     def load_scanPara(self):
         self.unloadpara_path = filedialog.askopenfilename(title='打开单个文件',
