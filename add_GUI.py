@@ -185,6 +185,8 @@ class App():
                 ]),
             OrderedDict([('峰值预览',(None,self.preview_peak_plot)),
                 ('峰值校正',(None,self.peak_rectify)),
+                ('峰值导出',(None,self.save_peak)),
+                ('峰值载入',(None,self.load_peak)),
                 ('-1',(None, None)),
                 ('电化学窗口大小',(None,self.test_window_set)),
                 ('-2',(None, None)),
@@ -649,6 +651,31 @@ class App():
             self.Dions_data.to_csv(save_Dions_path + '.csv')
         else:
             messagebox.showinfo(title='警告',message='结果为空！')
+
+    def save_peak(self):
+        if self.index == 0:
+            self.processData()
+        elif self.index == -1:
+            messagebox.showinfo(title='警告',message='请选择源文件！')
+        else:
+            pass
+        self.peak_csv = pd.DataFrame(np.zeros((9,4)), columns=['Ox Potential(V)', 'Ox Current(mA)', 'Red Potential(V)', 'Red Current(mA)'])  
+        self.peak_csv.index = [str(sc)+' mV/s' for sc in self.scan_sweep]
+        for i, yn in zip(range(0, 9), self.selected_sweep):
+            if yn != 0:
+                self.peak_csv.iloc[i,0] = self.example.ox_peak_list[i].iloc[0,0]
+                self.peak_csv.iloc[i,1] = self.example.ox_peak_list[i].iloc[0,1]
+                self.peak_csv.iloc[i,2] = self.example.red_peak_list[i].iloc[0,0]
+                self.peak_csv.iloc[i,3] = self.example.red_peak_list[i].iloc[0,1]
+            elif yn == 0:
+                pass
+        save_path = filedialog.asksaveasfilename(title='保存文件', 
+                filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
+                initialdir='/Users/hsh/Desktop/')
+        self.peak_csv.to_csv(save_path+'.csv')
+
+    def load_peak(self):
+        pass
 
     def load_scanPara(self):
         self.unloadpara_path = filedialog.askopenfilename(title='打开单个文件',
