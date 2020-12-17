@@ -62,16 +62,20 @@ class App():
             command = self.preview_peak_plot, 
             activebackground='black', activeforeground='white')
         preview_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
-        work_button = Button(fm2, text = 'Peak Rectify', 
+        reactify_button = Button(fm2, text = 'Peak Rectify', 
             bd=3, width = 10, height = 1, 
             command = self.peak_rectify, 
             activebackground='black', activeforeground='white')
-        work_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
-        save_button = Button(fm2, text = 'New Path', 
+        reactify_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
+        reactify_button.bind('<Double-Button-1>', self.load_peak)
+        reactify_button.bind('<Button-2>', self.save_peak)
+        reactify_button.bind('<Button-3>', self.save_peak)
+        new_button = Button(fm2, text = 'New Path', 
             bd=3, width = 10, height = 1, 
             command = self.new_path, 
             activebackground='black', activeforeground='white')
-        save_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
+        new_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
+        new_button.bind('<Double-Button-1>', self.new_project)
     #---------------------------------------------------------------------------------------
     # 创建Labelframe容器
         lf = ttk.Labelframe(self.master, text='Scan sweep (mV/s)',
@@ -136,17 +140,23 @@ class App():
             command = self.capac_diff_fit, 
             activebackground='black', activeforeground='white')
         plot_fit_result_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
-        plot_fit_result_button.bind('<Double-2>', None)#self.plot_all_fit_result 
-        plot_bar_button = Button(fm3, text = 'i=av^b', 
+        plot_fit_result_button.bind('<Double-Button-1>', self.capac_diff_bar)
+        plot_fit_result_button.bind('<Button-2>', self.save_Cfit_data)#self.plot_all_fit_result 
+        plot_fit_result_button.bind('<Button-3>', self.save_Cfit_data)
+        plot_avb_button = Button(fm3, text = 'i=av^b', 
             bd=3, width = 10, height = 1, 
             command = self.plot_avb, 
             activebackground='black', activeforeground='white')
-        plot_bar_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)       
-        plot_avb_button = Button(fm3, text = 'Ip-v^0.5', 
+        plot_avb_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)  
+        plot_avb_button.bind('<Button-2>', self.save_avb)     
+        plot_avb_button.bind('<Button-3>', self.save_avb)     
+        plot_dion_button = Button(fm3, text = 'Ip-v^0.5', 
             bd=3, width = 10, height = 1, 
             command = self.plot_Dions, 
             activebackground='black', activeforeground='white')
-        plot_avb_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)       
+        plot_dion_button.pack(side=LEFT, ipadx=1, ipady=5, padx=55, pady=10)
+        plot_dion_button.bind('<Button-2>', self.save_Dions) 
+        plot_dion_button.bind('<Button-3>', self.save_Dions) 
         
     # 创建menubar
     def init_menu(self):
@@ -241,7 +251,7 @@ class App():
         # self.master.saveas_icon = PhotoImage(name='E:/pydoc/tkinter/images/saveas.png')
         # self.master.signout_icon = PhotoImage(name='E:/pydoc/tkinter/images/signout.png')
     # 新建项目
-    def new_project(self):
+    def new_project(self, event=None):
         self.workspace = 'C:/Users/Administrator/Desktop'
         self.new_path()
         self.init_scan_sweep()
@@ -370,6 +380,7 @@ class App():
     def preview_peak_plot(self):
         if self.index == 0:
             self.processData()
+            self.index += 1
         elif self.index == -1:
             messagebox.showinfo(title='警告',message='请选择源文件！')
         else:
@@ -415,6 +426,7 @@ class App():
     def capac_diff_fit(self):
         if self.index == 0:
             self.processData()
+            self.index += 1
         else:
             pass
         self.example.fit()
@@ -456,7 +468,7 @@ class App():
                 pass
         plt.show()
 
-    def save_Cfit_data(self):
+    def save_Cfit_data(self, event=None):
         if self.fit_data_expand:
             save_path = filedialog.asksaveasfilename(title='保存文件', 
             filetypes=[("office Excel", "*.xls")], # 只处理的文件类型
@@ -475,7 +487,7 @@ class App():
             else:
                 pass
 
-    def capac_diff_bar(self):
+    def capac_diff_bar(self, event=None):
         capacitance_list = []
         total_capacity_list = []
         if self.fit_data_expand:
@@ -538,7 +550,7 @@ class App():
             else:
                 pass
 
-    def save_CD_bar(self):
+    def save_CD_bar(self, event=None):
         if self.bar_data.empty == False:
             save_bar_path = filedialog.asksaveasfilename(title='保存文件', 
                 filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
@@ -559,6 +571,7 @@ class App():
     def plot_avb(self):
         if self.index == 0:
             self.processData()
+            self.index += 1
         elif self.index == -1:
             messagebox.showinfo(title='警告',message='请选择源文件！')
         else:
@@ -595,7 +608,7 @@ class App():
             'cathode_slop=' + str(int(self.example.cathode_avb[0] * 100) / 100))
         plt.show()
 
-    def save_avb(self):
+    def save_avb(self, event=None):
         if self.avb_data.empty == False:
             save_avb_path = filedialog.asksaveasfilename(title='保存文件', 
                 filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
@@ -607,6 +620,7 @@ class App():
     def plot_Dions(self):
         if self.index == 0:
             self.processData()
+            self.index += 1
         elif self.index == -1:
             messagebox.showinfo(title='警告',message='请选择源文件！')
         else:
@@ -643,7 +657,7 @@ class App():
             'cathode_k*D^0.5=' + str(int(self.example.cathode_D_ions[0] * 100) / 100))
         plt.show()
 
-    def save_Dions(self):
+    def save_Dions(self, event=None):
         if self.Dions_data.empty == False:
             save_Dions_path = filedialog.asksaveasfilename(title='保存文件', 
                 filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
@@ -652,9 +666,10 @@ class App():
         else:
             messagebox.showinfo(title='警告',message='结果为空！')
 
-    def save_peak(self):
+    def save_peak(self, event=None):
         if self.index == 0:
             self.processData()
+            self.index += 1
         elif self.index == -1:
             messagebox.showinfo(title='警告',message='请选择源文件！')
         else:
@@ -674,24 +689,31 @@ class App():
                 initialdir='/Users/hsh/Desktop/')
         self.peak_sheet.to_excel(save_path+'.xls')
 
-    def load_peak(self):
+    def load_peak(self, event=None):
         if self.index == 0:
             self.processData()
+            self.index += 1
         elif self.index == -1:
             messagebox.showinfo(title='警告',message='请选择源文件！')
         else:
             pass
         loaded_ox_peak = []
         loaded_red_peak = []
+        peak_path = filedialog.askopenfilename(title='载入峰值', 
+            filetypes=[("office Excel", "*.xls")], # 只处理的文件类型
+            initialdir=self.workspace)
+        self.peak_sheet = pd.read_excel(peak_path)
+        if 'Unnamed: 0' in self.peak_sheet.columns:
+            new_indx = self.peak_sheet['Unnamed: 0']
+            self.peak_sheet = self.peak_sheet.drop(columns='Unnamed: 0')
+            self.peak_sheet.index = new_indx
+        else:
+            pass
         v = [self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8, self.v9]
         sel_v = [self.var1, self.var2, self.var3, self.var4, self.var5, self.var6, self.var7, self.var8, self.var9]
         for sc_val, sc_sel in zip(v, sel_v):
             sc_val.set(0.0)
             sc_sel.set(0)
-        peak_path = filedialog.askopenfilename(title='载入峰值', 
-            filetypes=[("office Excel", "*.xls")], # 只处理的文件类型
-            initialdir=self.workspace)
-        self.peak_sheet = pd.read_excel(peak_path)
         scan_num = len(self.peak_sheet)
         for i, scan_str, sc_val, sc_sel in zip(range(0, scan_num), self.peak_sheet.index, v[:scan_num], sel_v[:scan_num]):
             if all(self.peak_sheet.loc[scan_str] == np.array([0.0,0.0,0.0,0.0]))==False:
@@ -699,7 +721,7 @@ class App():
                 loaded_red = pd.DataFrame([[self.peak_sheet.iloc[i,2], self.peak_sheet.iloc[i,3]]],columns=('Potential(V)', 'Current(mA)'))
                 loaded_ox_peak.append(loaded_ox)
                 loaded_red_peak.append(loaded_red)
-                sc_val.set(scan_str.split(' ')[0])
+                sc_val.set(float(str(scan_str).split(' ')[0]))
                 sc_sel.set(1)
             else:
                 loaded = pd.DataFrame(columns=('Potential(V)', 'Current(mA)'))
@@ -707,6 +729,7 @@ class App():
                 loaded_red_peak.append(loaded)
         self.example.ox_peak_list = loaded_ox_peak
         self.example.red_peak_list = loaded_red_peak
+        self.get_scan_rate()
 
     def load_scanPara(self):
         self.unloadpara_path = filedialog.askopenfilename(title='打开单个文件',
