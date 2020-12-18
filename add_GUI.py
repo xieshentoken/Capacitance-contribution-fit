@@ -26,7 +26,7 @@ class App():
         self.interval = 1
         self.index = -1
         self.fit_data_expand = []
-        self.rgb = ('#000000', 'black')
+        self.rgb = ('Cornflower Blue', '#6495ED')
         
     def initWidgets(self):
         # 初始化菜单、工具条用到的图标
@@ -524,7 +524,7 @@ class App():
             self.bar_data.columns = ('sweep when plot', 'Capacitance ratio', 'Diffusion ratio', 'real scan sweep')
 
             fig,ax = plt.subplots()
-            plt.bar(vv, self.c_ratio, color='#6495ED', label='Capacitance')
+            plt.bar(vv, self.c_ratio, color=self.rgb[1], label='Capacitance')
             plt.bar(vv, self.d_ratio, bottom=self.c_ratio, color='#A9A9A9', label='Diffusion')
             plt.xticks([i for i in vv], sv)
             ax.set_ylabel('Contribution ratio (%)')
