@@ -11,6 +11,7 @@ class Orz():
         self.ox_peak_list = []
         self.red_peak_list = []
         self.fit_data_list = []
+        self.intergral_fit_cap_ratio = 0
         self.drop0_scan_rate = [i for i in self.scan_rate if i != 0]
         self.drop0_data_list = [j for j in self.data_list if j.empty == False]
     # def read_data(self):
@@ -50,6 +51,7 @@ class Orz():
             self.red_peak1 = [c.iloc[0,1] for c in self.red_peak_list if c.empty == False]
             self.cathode_D_ions = np.polyfit(np.sqrt(self.drop0_scan_rate), self.red_peak1, 1)
 
+    # 依据公式 i = k1*v + k2*v^1/2,其中k1*v为赝电容贡献项；k2*v^1/2为扩散控制项，
     # 求出每个扫速下电容贡献的电流大小，以dataframe形式储存在self.fit_data_list中，dataframe的三列数据分别为｜电压｜、｜总电流｜、｜电容性电流｜
     def fit(self):
         if len(self.drop0_scan_rate) == len(self.drop0_data_list):
@@ -64,3 +66,23 @@ class Orz():
                 fit_data.columns = ('Potential(V)', 'Capacitance Current(mA)')
                 # data['Capacitance Current(mA)'] = pd.Series(np.array(k_c_list) * v)
                 self.fit_data_list.append(fit_data)
+
+    # 依据公式 Qf = ∫(k1*v + k2*v^1/2)dE/v = ∫k1dE + ∫k2dE*v^(-1/2),其中∫k1dE为赝电容贡献项；∫k2dE*v^(-1/2)为扩散控制项，
+    # 求出赝电容贡献及各扫速下的扩散控制贡献，并保存于self.fit2_data中，
+    def intergral_fit(self):
+        if len(self.drop0_scan_rate) == len(self.drop0_data_list):
+            self.Qf_list = []
+            # 用切片计算各个扫速下的积分容量，值储存在Qf_list中
+            for data in self.drop0_data_list:
+                Qf = 0
+                process_data = data.sort_values(by='Potential(V)', ascending=True).diff().dropna()
+                for data_dot in process_data.values:
+                    if abs(data_dot[0])<0.001:
+                        Qf += abs(data_dot[0]*data_dot[1])
+                self.Qf_list.append(Qf)
+            self.coeff = np.polyfit(1/np.sqrt(self.drop0_scan_rate), np.array(self.Qf_list), 1)
+            # 赝电容容量，类型为float
+            self.pseudo_capacity = self.coeff[1]
+            # 扩散容量，类型为ndarray, 其shape为：(所选扫速个数,)
+            self.diffusion_capacity = self.coeff[0]/np.sqrt(self.drop0_scan_rate)
+            self.intergral_fit_cap_ratio = self.pseudo_capacity/np.array(self.Qf_list)*100
