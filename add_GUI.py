@@ -178,16 +178,19 @@ class App():
                 ('退出', (None, self.master.quit)),
                 ]),
             OrderedDict([('电容/扩散拟合',(None, self.capac_diff_fit)), 
-                ('电容占比图',(None, self.capac_diff_bar)),
+                ('电容占比图(i/v^1/2)',(None, self.capac_diff_bar)),
                 ('数据导出', OrderedDict([('CV导出', (None, self.save_Cfit_data)),
                         ('柱状图导出',(None, self.save_CD_bar))])),
                 ('-1',(None, None)),
-                ('log(i)-log(v)',(None, self.plot_avb)),
-                ('数据导出 ',(None, self.save_avb)),
+                ('积分法电容/扩散拟合',(None, self.intergral_fit)),
+                ('数据导出 ',(None, self.save_interfit)),
                 ('-2',(None, None)),
-                ('Ip-v^1/2',(None, self.plot_Dions)),
-                ('数据导出  ',(None, self.save_Dions)),
+                ('log(i)-log(v)',(None, self.plot_avb)),
+                ('数据导出  ',(None, self.save_avb)),
                 ('-3',(None, None)),
+                ('Ip-v^1/2',(None, self.plot_Dions)),
+                ('数据导出   ',(None, self.save_Dions)),
+                ('-4',(None, None)),
                 # 二级菜单
                 ('更多', OrderedDict([
                     ('选择颜色',(None, self.select_color))
@@ -422,7 +425,7 @@ class App():
             else:
                 continue
         plt.show()
-
+    # 依据公式 i = k1*v + k2*v^1/2进行拟合，该方法仅适用于极化可以忽略不计的情形
     def capac_diff_fit(self):
         if self.index == 0:
             self.processData()
@@ -521,7 +524,7 @@ class App():
             self.c_ratio = capacitance / total_capacity * 100
             self.d_ratio = 100 - self.c_ratio
             self.bar_data = pd.concat([pd.Series(vv), pd.Series(self.c_ratio), pd.Series(self.d_ratio), pd.Series(np.array(sv))], axis=1)
-            self.bar_data.columns = ('sweep when plot', 'Capacitance ratio', 'Diffusion ratio', 'real scan sweep')
+            self.bar_data.columns = ('sweep when plot', 'Capacitance ratio(%)', 'Diffusion ratio(%)', 'real scan sweep')
 
             fig,ax = plt.subplots()
             plt.bar(vv, self.c_ratio, color=self.rgb[1], label='Capacitance')
@@ -556,6 +559,63 @@ class App():
                 filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
                 initialdir='/Users/hsh/Desktop/')
             self.bar_data.to_csv(save_bar_path + '.csv')
+        else:
+            messagebox.showinfo(title='警告',message='结果为空！')
+    # 依据公式 QF = ∫(k1*v + k2*v^1/2)dE/v = ∫k1dE + ∫k2dE*v^(-1/2)进行数据拟合，该方法适用于通常情形
+    def intergral_fit(self, event=None):
+        if self.index == 0:
+            self.processData()
+            self.index += 1
+        else:
+            pass
+        self.example.intergral_fit()
+        sv = [v for v in self.scan_rate if v != 0]
+        yy = len(sv)
+        vv = np.linspace(0,yy-1,yy)
+        # 储存数据于一个DataFrame中
+        self.intergral_fit_data = pd.concat([pd.Series(sv),pd.Series(1/np.sqrt(sv)),
+        pd.Series(self.example.Qf_list),pd.Series(self.example.pseudo_capacity+self.example.diffusion_capacity),
+        pd.Series(self.example.intergral_fit_cap_ratio),pd.Series(100-self.example.intergral_fit_cap_ratio)],axis=1)
+        self.intergral_fit_data.columns = ('selected scan rate(v, mV/s)', '1/v^0.5', 
+        'Intergral Capacity(Qf)', r'$\int_0^E k1\mathrm{d}E$\+$\int_0^E k2\mathrm{d}E$*v^(-1/2)',
+        'Capacitance ratio(%)', 'Diffusion ratio(%)')
+
+        fig,(ax1, ax2) = plt.subplots(1,2)
+        ax1.bar(vv, self.example.intergral_fit_cap_ratio, color=self.rgb[1], label='Capacitance')
+        ax1.bar(vv, 100-self.example.intergral_fit_cap_ratio, bottom=self.example.intergral_fit_cap_ratio, 
+        color='#A9A9A9', label='Diffusion')
+        ax1.set_xticks([i for i in vv])
+        ax1.set_xticklabels(sv)
+        ax1.set_ylabel('Contribution ratio (%)')
+        ax1.set_xlabel('Sweep rate (mV/s)')
+        ax1.set_ylim(0, 125)
+        ax1.legend(loc='best')
+        for i in range(0, yy):
+            try:
+                ax1.text(vv[i] - 0.5, 102, str(int(100 * self.example.intergral_fit_cap_ratio[i]) / 100))#, bbox = box)
+            except ValueError:
+                messagebox.askquestion(title='提示',message='拟合结果不可靠，请选择合适数据或扫速。')
+                break
+        y_i = self.example.pseudo_capacity+self.example.coeff[0]/np.sqrt(sv)
+        ax2.plot(1/np.sqrt(sv), y_i, color='r', label='QF = ∫k1dE + ∫k2dE*v^(-1/2)')
+        ax2.plot(1/np.sqrt(sv), np.array(self.example.Qf_list), 'o')
+        ax2.set_ylabel('Intergral Capacity')
+        ax2.set_xlabel('Scan rate(v^-0.5, (mV/s)^-0.5)')
+        ax2.legend(loc='best')
+        text_x = ax2.get_xlim()[1] - ax2.get_xlim()[0]
+        text_y = ax2.get_ylim()[1] - ax2.get_ylim()[0]
+        ax2.text(ax2.get_xlim()[0] + text_x  *0.25, ax2.get_ylim()[0] + text_y * 0.75, 
+            'intecept(∫k1dE, psedo)=' + str(int(self.example.pseudo_capacity * 1000) / 1000))
+        ax2.text(ax2.get_xlim()[0] + text_x * 0.25, ax2.get_ylim()[0] + text_y * 0.65, 
+            'slope(∫k2dE, diffusion)=' + str(int(self.example.coeff[0] * 1000) / 1000))
+        plt.show()
+
+    def save_interfit(self, event=None):
+        if self.intergral_fit_data.empty == False:
+            save_interfit_path = filedialog.asksaveasfilename(title='保存文件', 
+                filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
+                initialdir='/Users/hsh/Desktop/')
+            self.intergral_fit_data.to_csv(save_interfit_path + '.csv')
         else:
             messagebox.showinfo(title='警告',message='结果为空！')
 
@@ -767,7 +827,10 @@ class App():
         messagebox.showinfo(title='原始数据准备',message='根据扫速大小，依次将不同扫速下的数据（最多9个）分别保存在同一个Excel的不同Sheet中即可。')
 
     def show_help(self):
-        messagebox.showinfo(title='关于',message='离子导率由Randles-Sevcik方程给出：\n' +
+        messagebox.showinfo(title='关于',message='积分电容贡献由：\n'+
+        'Qf = ∫(k1*v + k2*v^1/2)dE/v = ∫k1dE + ∫k2dE*v^(-1/2)\n'+
+        '其中∫k1dE为赝电容贡献项；∫k2dE*v^(-1/2)为扩散控制项\n'+
+        '离子导率由Randles-Sevcik方程给出：\n' +
             'Ip = 0.4463*nFA*(nF/RT)^0.5 *Δc0*(vDions)^0.5\n' + 'n：反应过程参与电子数\n' + 
             'A：电化学活性面积\n' + 'Δc0：反应前后离子浓度的变化量\n' + 'v：扫描速率')
 
