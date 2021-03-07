@@ -26,6 +26,7 @@ class App():
         self.interval = 1
         self.index = -1
         self.fit_data_expand = []
+        self.interg_denom = 0
         self.rgb = ('Cornflower Blue', '#6495ED')
         
     def initWidgets(self):
@@ -162,7 +163,7 @@ class App():
     def init_menu(self):
         # '初始化菜单的方法'
         # 定义菜单条所包含的3个菜单
-        menus = ('文件', '编辑', '修正', '帮助')
+        menus = ('文件', '工作', '修正', '帮助')
         # 定义菜单数据
         items = (OrderedDict([
                 # 每项对应一个菜单项，后面元组第一个元素是菜单图标，
@@ -182,6 +183,7 @@ class App():
                 ('数据导出', OrderedDict([('CV导出', (None, self.save_Cfit_data)),
                         ('柱状图导出',(None, self.save_CD_bar))])),
                 ('-1',(None, None)),
+                ('选择积分总容量',(None, self.denominator_select)),
                 ('积分法电容/扩散拟合',(None, self.intergral_fit)),
                 ('数据导出 ',(None, self.save_interfit)),
                 ('-2',(None, None)),
@@ -260,6 +262,7 @@ class App():
         self.init_scan_sweep()
         self.test_window = 3.
         self.interval = 1
+        self.interg_denom = 0
 
     # 新建路径
     def new_path(self):
@@ -561,6 +564,10 @@ class App():
             self.bar_data.to_csv(save_bar_path + '.csv')
         else:
             messagebox.showinfo(title='警告',message='结果为空！')
+
+    def denominator_select(self):
+        self.interg_denom = simpledialog.askinteger('输入0或1选择Qf', '0: 积分容量\n1: 线性拟合容量',
+            initialvalue=self.interg_denom, minvalue=0, maxvalue=1)
     # 依据公式 QF = ∫(k1*v + k2*v^1/2)dE/v = ∫k1dE + ∫k2dE*v^(-1/2)进行数据拟合，该方法适用于通常情形
     def intergral_fit(self, event=None):
         if self.index == 0:
@@ -569,20 +576,24 @@ class App():
         else:
             pass
         self.example.intergral_fit()
+        if self.interg_denom == 0:
+            intergral_fit_cap_ratio = self.example.intergral_fit_cap_ratio0
+        elif self.interg_denom == 1:
+            intergral_fit_cap_ratio = self.example.intergral_fit_cap_ratio1
         sv = [v for v in self.scan_rate if v != 0]
         yy = len(sv)
         vv = np.linspace(0,yy-1,yy)
         # 储存数据于一个DataFrame中
         self.intergral_fit_data = pd.concat([pd.Series(sv),pd.Series(1/np.sqrt(sv)),
-        pd.Series(self.example.Qf_list),pd.Series(self.example.pseudo_capacity+self.example.diffusion_capacity),
-        pd.Series(self.example.intergral_fit_cap_ratio),pd.Series(100-self.example.intergral_fit_cap_ratio)],axis=1)
+        pd.Series(self.example.Qf_list), pd.Series(self.example.pseudo_capacity+self.example.diffusion_capacity),
+        pd.Series(intergral_fit_cap_ratio), pd.Series(100-intergral_fit_cap_ratio)], axis=1)
         self.intergral_fit_data.columns = ('selected scan rate(v, mV/s)', '1/v^0.5', 
         'Intergral Capacity(Qf)', r'$\int_0^E k1\mathrm{d}E$\+$\int_0^E k2\mathrm{d}E$*v^(-1/2)',
         'Capacitance ratio(%)', 'Diffusion ratio(%)')
 
         fig,(ax1, ax2) = plt.subplots(1,2)
-        ax1.bar(vv, self.example.intergral_fit_cap_ratio, color=self.rgb[1], label='Capacitance')
-        ax1.bar(vv, 100-self.example.intergral_fit_cap_ratio, bottom=self.example.intergral_fit_cap_ratio, 
+        ax1.bar(vv, intergral_fit_cap_ratio, color=self.rgb[1], label='Capacitance')
+        ax1.bar(vv, 100-intergral_fit_cap_ratio, bottom=intergral_fit_cap_ratio, 
         color='#A9A9A9', label='Diffusion')
         ax1.set_xticks([i for i in vv])
         ax1.set_xticklabels(sv)
@@ -592,7 +603,7 @@ class App():
         ax1.legend(loc='best')
         for i in range(0, yy):
             try:
-                ax1.text(vv[i] - 0.5, 102, str(int(100 * self.example.intergral_fit_cap_ratio[i]) / 100))#, bbox = box)
+                ax1.text(vv[i] - 0.5, 102, str(int(100 * intergral_fit_cap_ratio[i]) / 100))
             except ValueError:
                 messagebox.askquestion(title='提示',message='拟合结果不可靠，请选择合适数据或扫速。')
                 break
@@ -615,7 +626,7 @@ class App():
             save_interfit_path = filedialog.asksaveasfilename(title='保存文件', 
                 filetypes=[("逗号分隔符文件", "*.csv")], # 只处理的文件类型
                 initialdir='/Users/hsh/Desktop/')
-            self.intergral_fit_data.to_csv(save_interfit_path + '.csv')
+            self.intergral_fit_data.to_csv(save_interfit_path + '-' + str(self.interg_denom) + '.csv')
         else:
             messagebox.showinfo(title='警告',message='结果为空！')
 
