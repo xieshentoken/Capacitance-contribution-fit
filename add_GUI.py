@@ -566,7 +566,7 @@ class App():
             messagebox.showinfo(title='警告',message='结果为空！')
 
     def denominator_select(self):
-        self.interg_denom = simpledialog.askinteger('输入0或1选择Qf', '0: 积分容量\n1: 线性拟合容量',
+        self.interg_denom = simpledialog.askinteger('输入0或1选择Qf', '0: 线性拟合容量\n1: 积分容量',
             initialvalue=self.interg_denom, minvalue=0, maxvalue=1)
     # 依据公式 QF = ∫(k1*v + k2*v^1/2)dE/v = ∫k1dE + ∫k2dE*v^(-1/2)进行数据拟合，该方法适用于通常情形
     def intergral_fit(self, event=None):
