@@ -73,16 +73,17 @@ class Orz():
         if len(self.drop0_scan_rate) == len(self.drop0_data_list):
             self.Qf_list = []
             # 用切片计算各个扫速下的积分容量，值储存在Qf_list中
-            for data in self.drop0_data_list:
+            for v, data in zip(self.drop0_scan_rate, self.drop0_data_list):
                 Qf = 0
                 process_data = data.sort_values(by='Potential(V)', ascending=True).diff().dropna()
                 for data_dot in process_data.values:
                     if abs(data_dot[0])<0.001:
                         Qf += abs(data_dot[0]*data_dot[1])
-                self.Qf_list.append(Qf)
+                self.Qf_list.append(Qf/v)
             self.coeff = np.polyfit(1/np.sqrt(self.drop0_scan_rate), np.array(self.Qf_list), 1)
             # 赝电容容量，类型为float
             self.pseudo_capacity = self.coeff[1]
             # 扩散容量，类型为ndarray, 其shape为：(所选扫速个数,)
             self.diffusion_capacity = self.coeff[0]/np.sqrt(self.drop0_scan_rate)
-            self.intergral_fit_cap_ratio = self.pseudo_capacity/np.array(self.Qf_list)*100
+            self.intergral_fit_cap_ratio0 = self.pseudo_capacity/(self.pseudo_capacity+self.diffusion_capacity)*100
+            self.intergral_fit_cap_ratio1 = self.pseudo_capacity/np.array(self.Qf_list)*100
