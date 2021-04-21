@@ -14,7 +14,7 @@
 ## 2.数据读取
 - 界面说明
   
-  ![GUIACCOUNT](\GUI_account.jpg "GUI")  
+  ![GUIACCOUNT](GUI_account.jpg "GUI")  
   1.菜单栏  
   2.数据的绝对路径  
   3.文件选择按钮  
