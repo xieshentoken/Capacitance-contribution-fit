@@ -67,10 +67,10 @@ class makeGUI():
             sg.Button('R-S Fit', key='-DFIT-', pad=(10,1), border_width=0,size=(7,1), font=('courier', 25, 'italic'), 
             tooltip=' right click to save data as csv ')],]
 
-        return sg.Window(self.app_title, layout, finalize=True, grab_anywhere =True)
+        return sg.Window(self.app_title, layout, finalize=True, grab_anywhere =False)
 
     def event_bind(self):
-        self.master.bind("<Double-Button-1>", '-CHANGETHEME-')
+        self.master.bind("<Double-Button-3>", '-CHANGETHEME-')
         self.master['-SELECTPATH-'].bind("<Button-2>", 'PEAKLOAD-')
         self.master['-SELECTPATH-'].bind("<Button-3>", 'PEAKLOAD-')
         self.master['-PEAKRECT-'].bind("<Button-2>", 'PEAKSAVE-')
@@ -120,7 +120,7 @@ class makeGUI():
                     self.win1_active  = False
                     self.pvidx[0] = True
                     self.win1.close()
-            if event in ('new_project', '-CLEAR-'):
+            if event in ('New', '-CLEAR-'):
                 self.new_project()
             elif event == 'Set workspace':
                 self.workspace = sg.popup_get_folder('Select a folder', initial_folder=self.workspace, no_window=True,)
@@ -343,7 +343,7 @@ class makeGUI():
                         elif (rsl.iloc[i,0]-rsl.iloc[i+1,0]) > 0.0004:
                             pass
                         else:
-                            sg.popup('读取数据出错，尝试设置取点间隔为1')
+                            sg.popup('拟合数据出错，请检查各扫速下数据个数是否一致，\n或在菜单栏中Rectify->Number of data dots更改取点数，使得该值不超过数据点数')
                             break
                 capacitance_list.append(c_bar)
                 total_capacity_list.append(total)
@@ -365,12 +365,11 @@ class makeGUI():
             ax.set_xlabel('Sweep rate (mV/s)')
             ax.set_ylim(0, 125)
             ax.legend(loc='best')
-            for i in range(0, yy):
-                try:
-                    ax.text(vv[i] - 0.5, 102, str(int(100 * self.c_ratio[i]) / 100))#, bbox = box)
-                except ValueError:
-                    sg.popup('拟合结果不可靠，请选择合适数据或扫速。')
-                    break
+            try:
+                for i in range(0, yy):
+                        ax.text(vv[i] - 0.5, 102, str(int(100 * self.c_ratio[i]) / 100))#, bbox = box)
+            except ValueError:
+                sg.popup('拟合结果不可靠，请选择合适数据或扫速。')
             plt.show()
         else:
             yon = sg.popup('还未进行数据拟合，是否拟合？')
