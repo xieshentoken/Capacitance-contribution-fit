@@ -1,0 +1,60 @@
+<h1><strong>简单使用说明</strong></h1>
+
+<p>点击此处跳转到<a href="https://github.com/xieshentoken/Capacitance-contribution-fit/tree/Use-PySimpleGui/PySimpleGui">项目链接</a></p>
+
+<p>欢迎提出您宝贵的意见和建议，请联系邮箱:<dhu-hsa@mail.dhu.edu.cn>  </p>
+
+<h2>1.数据准备</h2>
+
+<p>这里以瑞士万通电化学工作站测得数据为例，将得到的不同扫速(这里包含7个扫速)下的数据保存于同一个Excel表格中，不同扫速的数据存在不同sheet中，此处数据不需要作任何处理直接保存即可。 <br>
+<img src="\Data_example.jpg" alt="Example" title="title" /></p>
+
+<h2>2.数据读取</h2>
+
+<ul>
+<li><p>界面说明</p>
+
+<p><img src="\GUI_account.jpg" alt="GUIACCOUNT" title="GUI" /> <br>
+1.菜单栏 <br>
+2.数据的绝对路径 <br>
+3.文件选择按钮 <br>
+4.读取数据+自动识别峰值 <br>
+5.手动峰值校正 <br>
+6.清除当前读取的数据 <br>
+7.预设的扫速值 <br>
+8.扫速选择框 <br>
+9.电容贡献拟合按钮 <br>
+10.b值拟合按钮 <br>
+11.扩散系数拟合按钮  </p></li>
+<li>识别氧化还原峰 <br>
+导入数据并选择扫速后，点击PeakView读取数据，软件会自动寻峰并且显示结果。寻峰结果常常不准确，需要手动校正。  </li>
+<li>校正峰值 <br>
+点击Peaks Rectify按钮来手动输入峰值，在精确度要求不高时，可以在显示的寻峰结果图上依据坐标右下角的x，y值来粗略读取峰值；当然可以通过其他软件辅助得到精确峰值后输入。</li>
+</ul>
+
+<h2>3.拟合不同扫速下的电容贡献值</h2>
+
+<p>依据公式：$\frac{i}{\nu^\frac12}=k_1\nu^\frac12+k_2$，左键单击C-D Fit按钮拟合得到各个扫速下赝电容反应的曲线，再右键单击C-D Fit按钮，依据面积比得到各扫速下的电容贡献值。在菜单栏中可以保存拟合结果。</p>
+
+<h2>4.拟合b值</h2>
+
+<p>得到正确峰值后，点击AVB按钮可以依据公式：$i=a\nu^b$&amp;$、log_{10}(i)=b\log_{10}(\nu)+\log_{10}(a)$拟合b值,右键单击AVB按钮或在菜单栏中保存数据</p>
+
+<h2>5.依据Randles-Sevcik方程求离子扩散系数</h2>
+
+<p>依据可逆体系的Randles-Sevcik方程：</p>
+
+<p>$I_p=(0.4463nFA\sqrt{\frac{nF}{RT}}\Delta c_0\sqrt{D_{Na^+}})\cdot\sqrt{\nu}$ <br>
+对扫速的开方及峰值电流线性拟合得到的斜率相对大小即代表了离子扩散系数的相对大小，寻峰后单击R-S Fit按钮进行拟合，再次右键单击或在菜单栏中保存数据。</p>
+
+<h2>6.保存数据</h2>
+
+<p>拟合结果并出图后，可以右键单击或菜单栏中可以保存拟合数据。</p>
+
+<h2>7.注意事项</h2>
+
+<ul>
+<li>点击Browse按钮选择原始数据后，选择的扫速个数不能多于Excel中总的Sheet数；</li>
+<li>Excel中必须仅包含测试数据，不要插入包含其他数据的Sheet或空Sheet；</li>
+<li>第一次选择数据后如果要更改扫速，扫速不得多于第一次的扫速个数。</li>
+</ul>
