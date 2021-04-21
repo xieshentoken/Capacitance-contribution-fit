@@ -9,7 +9,7 @@
 
 ## 1.数据准备
 这里以瑞士万通电化学工作站测得数据为例，将得到的不同扫速(这里包含7个扫速)下的数据保存于同一个Excel表格中，不同扫速的数据存在不同sheet中，此处数据不需要作任何处理直接保存即可。  
-![Example](\Data_example.jpg "title")
+![Example](Data_example.jpg "title")
 
 ## 2.数据读取
 - 界面说明
