@@ -734,4 +734,7 @@ class makeGUI():
             self.filt_ox_peak_list = [self.ox_peak_list[i] for i in self.new_selrate]
             self.filt_red_peak_list = [self.red_peak_list[i] for i in self.new_selrate]
         elif self.pvidx[0] and self.pvidx[1]:
-            pass
+            new_filt_ox = [self.ox_peak_list[i] for i in self.new_selrate]
+            new_filt_red = [self.red_peak_list[i] for i in self.new_selrate]
+            self.filt_ox_peak_list = new_filt_ox
+            self.filt_red_peak_list = new_filt_red
