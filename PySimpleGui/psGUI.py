@@ -393,7 +393,7 @@ class makeGUI():
             pass
 
     def selectIntegQ(self):
-        self.integ_denom = int(sg.popup_get_text('输入0或1选择Qf', '0: 线性拟合容量\n1: 积分容量', default_text=self.interg_denom, modal=False,))
+        self.interg_denom = int(sg.popup_get_text('输入0或1选择Qf', '0: 线性拟合容量\n1: 积分容量', default_text=self.interg_denom, modal=False,))
 
     # 依据公式 QF = ∫(k1*v + k2*v^1/2)dE/v = ∫k1dE + ∫k2dE*v^(-1/2)进行数据拟合，该方法适用于通常情形
     def integral_fit(self, event, values):
@@ -453,19 +453,19 @@ class makeGUI():
             sg.popup('请选择数据文件。')
 
     def save_integfit(self, event, values):
-        try:
+        # try:
             if not self.integral_fit_data.empty:
                 save_interfit_path = sg.popup_get_file('Please enter a file name', title = 'Find Your File', initial_folder=self.workspace,
                     save_as=True, no_window=True, file_types=(("Comma-Separated Values", "*.csv"),))
                 self.integral_fit_data.to_csv(save_interfit_path + '-' + str(self.integ_denom) + '.csv')
             else:
                 sg.popup('结果为空！')
-        except FileNotFoundError:
-            pass
-        except ValueError:
-            pass
-        except AttributeError:
-            pass
+        # except FileNotFoundError:
+        #     pass
+        # except ValueError:
+        #     pass
+        # except AttributeError:
+        #     pass
 
     def preview_peak_plot(self, event, values):
         try:
