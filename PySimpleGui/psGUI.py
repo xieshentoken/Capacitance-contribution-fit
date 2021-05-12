@@ -195,7 +195,7 @@ class makeGUI():
         self.data_list = []
         self.idx = False
         self.fit_data = []
-        self.interg_denom = 0
+        self.integ_denom = 0
 
     def setDotsnum(self):
         self.dotnum = int(sg.popup_get_text('设置取点数', default_text=self.dotnum, modal=False,))
@@ -393,7 +393,7 @@ class makeGUI():
             pass
 
     def selectIntegQ(self):
-        self.interg_denom = int(sg.popup_get_text('输入0或1选择Qf', '0: 线性拟合容量\n1: 积分容量', default_text=self.interg_denom, modal=False,))
+        self.integ_denom = int(sg.popup_get_text('输入0或1选择Qf', '0: 线性拟合容量\n1: 积分容量', default_text=self.integ_denom, modal=False,))
 
     # 依据公式 QF = ∫(k1*v + k2*v^1/2)dE/v = ∫k1dE + ∫k2dE*v^(-1/2)进行数据拟合，该方法适用于通常情形
     def integral_fit(self, event, values):
@@ -413,7 +413,7 @@ class makeGUI():
                 pd.Series(integFitData[2]), pd.Series(integFitData[3]),
                 pd.Series(integral_fit_cap_ratio), pd.Series(100-integral_fit_cap_ratio)], axis=1)
             self.integral_fit_data.columns = ('selected scan rate(v, mV/s)', '1/v^0.5', 
-            'Intergral Capacity(Qf)', r'$\int_0^E k1\mathrm{d}E$\+$\int_0^E k2\mathrm{d}E$*v^(-1/2)',
+            'Integral Capacity(Qf)', r'$\int_0^E k1\mathrm{d}E$\+$\int_0^E k2\mathrm{d}E$*v^(-1/2)',
             'Capacitance ratio(%)', 'Diffusion ratio(%)')
 
             fig,(ax1, ax2) = plt.subplots(1,2)
@@ -435,7 +435,7 @@ class makeGUI():
             y_i = integFitData[3]
             ax2.plot(1/np.sqrt(self.filt_scan_rate), y_i, color='r', label='QF = ∫k1dE + ∫k2dE*v^(-1/2)')
             ax2.plot(1/np.sqrt(self.filt_scan_rate), np.array(integFitData[2]), 'o')
-            ax2.set_ylabel('Intergral Capacity')
+            ax2.set_ylabel('Integral Capacity')
             ax2.set_xlabel('Scan rate(v^-0.5, (mV/s)^-0.5)')
             ax2.legend(loc='best')
             text_x = ax2.get_xlim()[1] - ax2.get_xlim()[0]
@@ -453,19 +453,19 @@ class makeGUI():
             sg.popup('请选择数据文件。')
 
     def save_integfit(self, event, values):
-        # try:
+        try:
             if not self.integral_fit_data.empty:
                 save_interfit_path = sg.popup_get_file('Please enter a file name', title = 'Find Your File', initial_folder=self.workspace,
                     save_as=True, no_window=True, file_types=(("Comma-Separated Values", "*.csv"),))
                 self.integral_fit_data.to_csv(save_interfit_path + '-' + str(self.integ_denom) + '.csv')
             else:
                 sg.popup('结果为空！')
-        # except FileNotFoundError:
-        #     pass
-        # except ValueError:
-        #     pass
-        # except AttributeError:
-        #     pass
+        except FileNotFoundError:
+            pass
+        except ValueError:
+            pass
+        except AttributeError:
+            pass
 
     def preview_peak_plot(self, event, values):
         try:
