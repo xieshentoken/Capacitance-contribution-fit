@@ -367,10 +367,10 @@ class makeGUI():
             ax.legend(loc='best')
             try:
                 for i in range(0, yy):
-                        ax.text(vv[i] - 0.5, 102, str(int(100 * self.c_ratio[i]) / 100))#, bbox = box)
+                    ax.text(vv[i] - 0.5, 102, str(int(100 * self.c_ratio[i]) / 100))#, bbox = box)
+                plt.show()
             except ValueError:
                 sg.popup('拟合结果不可靠，请选择合适数据或扫速。')
-            plt.show()
         else:
             yon = sg.popup('还未进行数据拟合，是否拟合？')
             if yon:
