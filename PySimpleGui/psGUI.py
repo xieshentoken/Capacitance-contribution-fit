@@ -280,25 +280,24 @@ class makeGUI():
             fig,((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3)
             axs = [ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8,ax9]
             for i, vi, nvi in zip(range(0,len(self.selected_rate)), self.selected_idx, self.new_selrate):
-                try :
-                    axs[vi].plot(self.data_list[vi]['Potential(V)'], self.data_list[vi]['Current(mA)'],
-                    color = colors[i],
-                    linestyle = '-',
-                    label = 'pristine '+ labels[vi],
-                    linewidth = 1.5)
-                    axs[vi].plot(self.fit_data[i]['Potential(V)'], self.fit_data[i]['Capacitance Current(mA)'],
-                    color = ef.loop_pick_color(colors[i], (i+1)*1.43),
-                    linestyle = '-',
-                    label = 'capacitance'+ labels[vi],
-                    linewidth = 1.5)
-                except IndexError:
-                    sg.popup('请检查每个扫速下对应文件是否存在！')
+                axs[vi].plot(self.data_list[vi]['Potential(V)'], self.data_list[vi]['Current(mA)'],
+                color = colors[i],
+                linestyle = '-',
+                label = 'pristine '+ labels[vi],
+                linewidth = 1.5)
+                axs[vi].plot(self.fit_data[i]['Potential(V)'], self.fit_data[i]['Capacitance Current(mA)'],
+                color = ef.loop_pick_color(colors[i], (i+1)*1.43),
+                linestyle = '-',
+                label = 'capacitance'+ labels[vi],
+                linewidth = 1.5)
                 axs[vi].legend(loc='best')
                 axs[vi].set_title('scan sweep = '+str(self.scan_rate[nvi])+'mV/s')
                 axs[vi].set_xlabel('Potential (V)')
                 axs[vi].set_ylabel('Current (mA)')
 
             plt.show()
+        except IndexError:
+            sg.popup('请检查每个扫速下对应文件是否存在！')
         except FileNotFoundError:
             self.progwin.close()
             sg.popup('请选择数据文件。')
@@ -336,12 +335,11 @@ class makeGUI():
                 rsl = pd.concat([fit_data, self.data_list[sv]['Current(mA)']], axis=1)
                 rsl.sort_values(by='Potential(V)', ascending=True, inplace=True)
                 # rsl.sort_index(by='Potential(V)', ascending=True, inplace=True)
+                sampleInterval = abs((rsl.iloc[0,0]-rsl.iloc[-1,0])*2/self.dotnum)
                 for i in range(0, len(fit_data)-1):
-                        if (rsl.iloc[i,0]-rsl.iloc[i+1,0]) < 0.0004:
+                        if (rsl.iloc[i,0]-rsl.iloc[i+1,0]) <= sampleInterval*1.05:
                             c_bar += abs((rsl.iloc[i,0]-rsl.iloc[i+1,0])*(rsl.iloc[i,1]-rsl.iloc[i+1,1]))
                             total += abs((rsl.iloc[i,0]-rsl.iloc[i+1,0])*(rsl.iloc[i,2]-rsl.iloc[i+1,2]))
-                        elif (rsl.iloc[i,0]-rsl.iloc[i+1,0]) > 0.0004:
-                            pass
                         else:
                             sg.popup('拟合数据出错，请检查各扫速下数据个数是否一致，\n或在菜单栏中Rectify->Number of data dots更改取点数，使得该值不超过数据点数')
                             break
@@ -399,7 +397,7 @@ class makeGUI():
     def integral_fit(self, event, values):
         try:
             self.dataReadJudge(event, values)
-            integFitData = self.example.integCdFit(self.filt_data_list, self.filt_scan_rate)
+            integFitData = self.example.integCdFit(self.filt_data_list, self.filt_scan_rate, self.dotnum)
         # Plot----------------------------------------------------------------------------------
             if self.integ_denom == 0:
                 integral_fit_cap_ratio = integFitData[0]
@@ -427,11 +425,7 @@ class makeGUI():
             ax1.set_ylim(0, 125)
             ax1.legend(loc='best')
             for i in range(0, yy):
-                try:
-                    ax1.text(vv[i] - 0.5, 102, str(int(100 * integral_fit_cap_ratio[i]) / 100))
-                except ValueError:
-                    sg.popup('拟合结果不可靠，请选择合适数据或扫速。')
-                    break
+                ax1.text(vv[i] - 0.5, 102, str(int(100 * integral_fit_cap_ratio[i]) / 100))
             y_i = integFitData[3]
             ax2.plot(1/np.sqrt(self.filt_scan_rate), y_i, color='r', label='QF = ∫k1dE + ∫k2dE*v^(-1/2)')
             ax2.plot(1/np.sqrt(self.filt_scan_rate), np.array(integFitData[2]), 'o')
@@ -445,6 +439,8 @@ class makeGUI():
             ax2.text(ax2.get_xlim()[0] + text_x * 0.25, ax2.get_ylim()[0] + text_y * 0.65, 
                 'slope(∫k2dE, diffusion)=' + str(int(integFitData[4][0] * 1000) / 1000))
             plt.show()
+        except ValueError:
+            sg.popup('拟合结果不可靠，请选择合适数据或扫速。')
         except FileNotFoundError:
             self.progwin.close()
             sg.popup('请选择数据文件。')
@@ -477,33 +473,28 @@ class makeGUI():
             fig,((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3)
             axs = [ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8,ax9]
             for i, vi, nvi in zip(range(0,len(self.selected_rate)), self.selected_idx, self.new_selrate):
-                try :
-                    axs[vi].plot(self.data_list[vi]['Potential(V)'], self.data_list[vi]['Current(mA)'],
-                    color = colors[i],
-                    linestyle = '-',
-                    label = 'pristine '+ labels[vi],
-                    linewidth = 1.5)
-                except IndexError:
-                    sg.popup('请检查每个扫速下对应文件是否存在！')
-                    break
-                try:
-                    axs[vi].annotate('ox peak1', xy=(self.filt_ox_peak_list[i].iloc[0,0], self.filt_ox_peak_list[i].iloc[0,1]), 
-                        xytext=(self.filt_ox_peak_list[i].iloc[0,0]-0.5, self.filt_ox_peak_list[i].iloc[0,1]),
-                        color=ef.loop_pick_color(colors[i], (i+1)*1.3),size=7,
-                        arrowprops=dict(facecolor='k', shrink=0.05, width=1))
+                axs[vi].plot(self.data_list[vi]['Potential(V)'], self.data_list[vi]['Current(mA)'],
+                color = colors[i],
+                linestyle = '-',
+                label = 'pristine '+ labels[vi],
+                linewidth = 1.5)
+                axs[vi].annotate('ox peak1', xy=(self.filt_ox_peak_list[i].iloc[0,0], self.filt_ox_peak_list[i].iloc[0,1]), 
+                    xytext=(self.filt_ox_peak_list[i].iloc[0,0]-0.5, self.filt_ox_peak_list[i].iloc[0,1]),
+                    color=ef.loop_pick_color(colors[i], (i+1)*1.3),size=7,
+                    arrowprops=dict(facecolor='k', shrink=0.05, width=1))
 
-                    axs[vi].annotate('red peak1', xy=(self.filt_red_peak_list[i].iloc[0,0], self.filt_red_peak_list[i].iloc[0,1]), 
-                        xytext=(self.filt_red_peak_list[i].iloc[0,0]+0.5, self.filt_red_peak_list[i].iloc[0,1]),
-                        color=ef.loop_pick_color(colors[i], (i+1)*1.3), size=7,
-                        arrowprops=dict(facecolor='k', shrink=0.05, width=1))
-                except IndexError:
-                    pass
+                axs[vi].annotate('red peak1', xy=(self.filt_red_peak_list[i].iloc[0,0], self.filt_red_peak_list[i].iloc[0,1]), 
+                    xytext=(self.filt_red_peak_list[i].iloc[0,0]+0.5, self.filt_red_peak_list[i].iloc[0,1]),
+                    color=ef.loop_pick_color(colors[i], (i+1)*1.3), size=7,
+                    arrowprops=dict(facecolor='k', shrink=0.05, width=1))
                 axs[vi].legend(loc='best')
                 vii = vi + 1
                 axs[vi].set_title('scan sweep = '+str(values[f'-V{vii}-'])+'mV/s')
                 axs[vi].set_xlabel('Potential (V)')
                 axs[vi].set_ylabel('Current (mA)')
             plt.show()
+        except IndexError:
+            sg.popup('请检查每个扫速下对应文件是否存在！')
         except FileNotFoundError:
             self.progwin.close()
             sg.popup('请选择数据文件。')
