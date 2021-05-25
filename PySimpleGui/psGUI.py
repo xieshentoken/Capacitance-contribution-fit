@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from scipy.integrate import simps
 # MacOS下使用这两行，Win下可以注释掉————————————————————
 import matplotlib
 matplotlib.use("TkAgg")
@@ -331,18 +332,25 @@ class makeGUI():
         total_capacity_list = []
         if len(self.fit_data):
             for fit_data, sv in zip(self.fit_data, self.new_selrate):
-                c_bar, total = 0., 0.
                 rsl = pd.concat([fit_data, self.data_list[sv]['Current(mA)']], axis=1)
-                rsl.sort_values(by='Potential(V)', ascending=True, inplace=True)
-                # rsl.sort_index(by='Potential(V)', ascending=True, inplace=True)
-                sampleInterval = abs((rsl.iloc[0,0]-rsl.iloc[-1,0])*2/self.dotnum)
-                for i in range(0, len(fit_data)-1):
-                        if (rsl.iloc[i,0]-rsl.iloc[i+1,0]) <= sampleInterval*1.05:
-                            c_bar += abs((rsl.iloc[i,0]-rsl.iloc[i+1,0])*(rsl.iloc[i,1]-rsl.iloc[i+1,1]))
-                            total += abs((rsl.iloc[i,0]-rsl.iloc[i+1,0])*(rsl.iloc[i,2]-rsl.iloc[i+1,2]))
-                        else:
-                            sg.popup('拟合数据出错，请检查各扫速下数据个数是否一致，\n或在菜单栏中Rectify->Number of data dots更改取点数，使得该值不超过数据点数')
-                            break
+                # 调用scipy.integrate.simps模块，Simpson法求不同扫速下的容量---------------------------------------------------------------------------
+                try:
+                    c_bar = abs(simps(rsl['Capacitance Current(mA)'], rsl['Potential(V)']))
+                    total = abs(simps(rsl['Current(mA)'], rsl['Potential(V)']))
+                except:
+                    sg.popup('数值积分过程出错。')
+                # 矩形插值求不同扫速下的电容贡献及总容量------------------------------------------------------------------------------------------------
+                # rsl.sort_values(by='Potential(V)', ascending=True, inplace=True)
+                # sampleInterval = abs((rsl.iloc[0,0]-rsl.iloc[-1,0])*2/self.dotnum)
+                # c_bar, total = 0., 0.
+                # for i in range(0, len(fit_data)-1):
+                #         if (rsl.iloc[i,0]-rsl.iloc[i+1,0]) <= sampleInterval*1.05:
+                #             c_bar += abs((rsl.iloc[i,0]-rsl.iloc[i+1,0])*(rsl.iloc[i,1]-rsl.iloc[i+1,1]))
+                #             total += abs((rsl.iloc[i,0]-rsl.iloc[i+1,0])*(rsl.iloc[i,2]-rsl.iloc[i+1,2]))
+                #         else:
+                #             sg.popup('拟合数据出错，请检查各扫速下数据个数是否一致，\n或在菜单栏中Rectify->Number of data dots更改取点数，使得该值不超过数据点数')
+                #             break
+                # --------------------------------------------------------------------------------------------------------------------------------
                 capacitance_list.append(c_bar)
                 total_capacity_list.append(total)
             # ====================================================================================
@@ -397,7 +405,7 @@ class makeGUI():
     def integral_fit(self, event, values):
         try:
             self.dataReadJudge(event, values)
-            integFitData = self.example.integCdFit(self.filt_data_list, self.filt_scan_rate, self.dotnum)
+            integFitData = self.example.integCdFit(self.filt_data_list, self.filt_scan_rate)
         # Plot----------------------------------------------------------------------------------
             if self.integ_denom == 0:
                 integral_fit_cap_ratio = integFitData[0]
@@ -429,7 +437,7 @@ class makeGUI():
             y_i = integFitData[3]
             ax2.plot(1/np.sqrt(self.filt_scan_rate), y_i, color='r', label='QF = ∫k1dE + ∫k2dE*v^(-1/2)')
             ax2.plot(1/np.sqrt(self.filt_scan_rate), np.array(integFitData[2]), 'o')
-            ax2.set_ylabel('Integral Capacity')
+            ax2.set_ylabel('Integral Capacity(Couloms)')
             ax2.set_xlabel('Scan rate(v^-0.5, (mV/s)^-0.5)')
             ax2.legend(loc='best')
             text_x = ax2.get_xlim()[1] - ax2.get_xlim()[0]
