@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import scipy.signal as signal
+from scipy.integrate import simps
 import functools
 import PySimpleGUI as sg
 
@@ -45,17 +46,21 @@ class essFunc():
     @staticmethod
     # 依据公式 Qf = ∫(k1*v + k2*v^1/2)dE/v = ∫k1dE + ∫k2dE*v^(-1/2),其中∫k1dE为赝电容贡献项；∫k2dE*v^(-1/2)为扩散控制项，
     # 求出赝电容贡献及各扫速下的扩散控制贡献，并保存于fit2_data中，
-    def integCdFit(data_list, scan_rate, dotnum, current_label='Current(mA)', potential_label='Potential(V)'):
+    def integCdFit(data_list, scan_rate, current_label='Current(mA)', potential_label='Potential(V)'):
         Qf_list = []
-        # 用矩形近似计算各个扫速下的积分容量，值储存在Qf_list中
+        # 近似计算各个扫速下的积分容量，值储存在Qf_list中
         for v, data in zip(scan_rate, data_list):
-            Qf = 0
-            sortData = data.sort_values(by=potential_label, ascending=True)
-            sampleInterval = abs(sortData[potential_label].iloc[0]-sortData[potential_label].iloc[-1])*2/dotnum
-            process_data = sortData.diff().dropna()
-            for data_dot in process_data.values:
-                if abs(data_dot[0]) <= sampleInterval*1.05:
-                    Qf += abs(data_dot[0]*data_dot[1])
+            # 调用scipy.integrate.simps模块，Simpson法求不同扫速下的总容量------------------------------------
+            Qf = abs(simps(data[current_label], data[potential_label]))
+            # 矩形插值求不同扫速下的总容量--------------------------------------
+            # Qf = 0
+            # sampleInterval = data[potential_label].diff().abs().mean()
+            # sortData = data.sort_values(by=potential_label, ascending=True)
+            # process_data = sortData.diff().dropna()
+            # for data_dot in process_data.values:
+            #     if abs(data_dot[0]) < sampleInterval:
+            #         Qf += abs(data_dot[0]*data_dot[1])
+            # ----------------------------------------------------------------
             Qf_list.append(Qf/v)
         coeff = np.polyfit(1/np.sqrt(scan_rate), np.array(Qf_list), 1)
         # 赝电容容量，类型为float
