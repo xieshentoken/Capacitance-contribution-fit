@@ -21,9 +21,9 @@ class makeGUI():
         self.workspace = 'C:/Users/Administrator/Desktop'
         self.win1_active = False
         self.pvidx = [False, False]
-        self.dotnum = 2448
+        self.dotnum = 2455
         self.interval = 1
-        self.scan_rate = [0.1,0.2,0.4,0.8,1.6,2.,4,]
+        self.scan_rate = [0.1,0.2,0.5,1,2,5,10,]
         self.data_list = []
         self.idx = False
         self.fit_data = []
@@ -35,17 +35,17 @@ class makeGUI():
         # ------ Menu Definition ------ #
         menu_def = [['&File', ['New','Open file','Save all', '---', 'Set workspace', '---', '&Exit']],
                     ['&Work', ['C-D fit', 'C-D contriBar', 'Save as', ['CV curve', 'Bar'], '---', 'integral fit', 'Save as ', '---', 'logi-logv', 'Save as  ', '---', 'Randles-Sevcik fit', 'Save as   '], ], 
-                    ['&Reactify', ['Peaks preview', 'Peaks rectify', 'Export peaks', 'Load peaks', '---', 'select  integQ', '---', 'Number of data dots', 'Interval']], 
+                    ['&Reactify', ['Peaks preview', 'Peaks rectify', 'Export peaks', 'Load peaks', '---', 'select  integQ', '---', '数据点数', '取点间隔']], 
                     ['&Help', ['tutorial', '---', 'Change Theme', 'Feedbacks']],]
         # ------ Column Definition ------ #
         column0 = [[sg.InputCombo(cf.scan_set, font=('StSong', 15, 'bold'), size=(30, 1), key='-VLIST-', default_value=cf.scan_set[0]), sg.OK()],
             [sg.T('v1:', font=('StSong', 25, 'bold')), sg.Input(0.1,font=('StSong', 25, 'bold'), size=(3,1), key='-V1-'), sg.Checkbox('',key='-V1CHECK-', pad=(10,1), default=True),
              sg.T('v2:', font=('StSong', 25, 'bold')), sg.Input(0.2,font=('StSong', 25, 'bold'), size=(3,1), key='-V2-'), sg.Checkbox('',key='-V2CHECK-', pad=(10,1), default=True),
-             sg.T('v3:', font=('StSong', 25, 'bold')), sg.Input(0.4,font=('StSong', 25, 'bold'), size=(3,1), key='-V3-'), sg.Checkbox('',key='-V3CHECK-', pad=(10,1), default=True)], 
-            [sg.T('v4:', font=('StSong', 25, 'bold')), sg.Input(0.8,font=('StSong', 25, 'bold'), size=(3,1), key='-V4-'), sg.Checkbox('',key='-V4CHECK-', pad=(10,1), default=True),
-             sg.T('v5:', font=('StSong', 25, 'bold')), sg.Input(1.6,font=('StSong', 25, 'bold'), size=(3,1), key='-V5-'), sg.Checkbox('',key='-V5CHECK-', pad=(10,1), default=True),
-             sg.T('v6:', font=('StSong', 25, 'bold')), sg.Input(2.0,font=('StSong', 25, 'bold'), size=(3,1), key='-V6-'), sg.Checkbox('',key='-V6CHECK-', pad=(10,1), default=True)], 
-            [sg.T('v7:', font=('StSong', 25, 'bold')), sg.Input(4.0,font=('StSong', 25, 'bold'), size=(3,1), key='-V7-'), sg.Checkbox('',key='-V7CHECK-', pad=(10,1), default=True),
+             sg.T('v3:', font=('StSong', 25, 'bold')), sg.Input(0.5,font=('StSong', 25, 'bold'), size=(3,1), key='-V3-'), sg.Checkbox('',key='-V3CHECK-', pad=(10,1), default=True)], 
+            [sg.T('v4:', font=('StSong', 25, 'bold')), sg.Input(1.0,font=('StSong', 25, 'bold'), size=(3,1), key='-V4-'), sg.Checkbox('',key='-V4CHECK-', pad=(10,1), default=True),
+             sg.T('v5:', font=('StSong', 25, 'bold')), sg.Input(2.0,font=('StSong', 25, 'bold'), size=(3,1), key='-V5-'), sg.Checkbox('',key='-V5CHECK-', pad=(10,1), default=True),
+             sg.T('v6:', font=('StSong', 25, 'bold')), sg.Input(5.0,font=('StSong', 25, 'bold'), size=(3,1), key='-V6-'), sg.Checkbox('',key='-V6CHECK-', pad=(10,1), default=True)], 
+            [sg.T('v7:', font=('StSong', 25, 'bold')), sg.Input(10,font=('StSong', 25, 'bold'), size=(3,1), key='-V7-'), sg.Checkbox('',key='-V7CHECK-', pad=(10,1), default=True),
              sg.T('v8:', font=('StSong', 25, 'bold')), sg.Input(0,font=('StSong', 25, 'bold'), size=(3,1), key='-V8-'), sg.Checkbox('',key='-V8CHECK-', pad=(10,1), default=False),
              sg.T('v9:', font=('StSong', 25, 'bold')), sg.Input(0,font=('StSong', 25, 'bold'), size=(3,1), key='-V9-'), sg.Checkbox('',key='-V9CHECK-', pad=(10,1), default=False)], ]
 
@@ -128,9 +128,9 @@ class makeGUI():
                 self.master.close()
                 self.master = self.make_window()
                 self.event_bind()
-            elif event == 'Number of data dots':
+            elif event == '数据点数':
                 self.setDotsnum()
-            elif event == 'Interval':
+            elif event == '取点间隔':
                 self.setInterval()
             elif event == 'select  integQ':
                 self.selectIntegQ()
@@ -190,9 +190,9 @@ class makeGUI():
     def new_project(self):
         self.win1_active = False
         self.pvidx = [False, False]
-        self.dotnum = 2448
+        self.dotnum = 2455
         self.interval = 1
-        self.scan_rate = [0.1,0.2,0.4,0.8,1.6,2.,4,]
+        self.scan_rate = [0.1,0.2,0.5,1,2,5,10,]
         self.data_list = []
         self.idx = False
         self.fit_data = []
@@ -262,8 +262,7 @@ class makeGUI():
                 pass
         if len(self.scan_rate) > len(self.data_list):  # 这个判断应该每次处理数据都需要，放这里不妥，但是暂时不想改= =!
             sg.popup('选择的扫速不能多于实际数据。')
-            raise Exception('选择的扫速不能多于实际数据。')
-            pass
+            # raise Exception('选择的扫速不能多于实际数据。')
         #———————————————
         self.progwin.close()
         self.master.read(timeout=100)
@@ -286,8 +285,8 @@ class makeGUI():
                 linestyle = '-',
                 label = 'pristine '+ labels[vi],
                 linewidth = 1.5)
-                axs[vi].plot(self.fit_data[i]['Potential(V)'], self.fit_data[i]['Capacitance Current(mA)'],
-                color = ef.loop_pick_color(colors[i], (i+1)*1.43),
+                axs[vi].fill(self.fit_data[i]['Potential(V)'], self.fit_data[i]['Capacitance Current(mA)'],
+                color = ef.loop_pick_color(colors[i], (i+1)),
                 linestyle = '-',
                 label = 'capacitance'+ labels[vi],
                 linewidth = 1.5)
@@ -365,7 +364,7 @@ class makeGUI():
 
             fig,ax = plt.subplots()
             plt.bar(vv, self.c_ratio, color=self.init_color, label='Capacitance')
-            plt.bar(vv, self.d_ratio, bottom=self.c_ratio, color='#A9A9A9', label='Diffusion')
+            plt.bar(vv, self.d_ratio, bottom=self.c_ratio, color='#33f5a5', label='Diffusion')
             plt.xticks([i for i in vv], self.filt_scan_rate)
             ax.set_ylabel('Contribution ratio (%)')
             ax.set_xlabel('Sweep rate (mV/s)')
@@ -376,7 +375,7 @@ class makeGUI():
                     ax.text(vv[i] - 0.5, 102, str(int(100 * self.c_ratio[i]) / 100))#, bbox = box)
                 plt.show()
             except ValueError:
-                sg.popup('拟合结果不可靠，请选择合适数据或扫速。')
+                sg.popup('拟合结果不可靠，请选择合适数据或扫速。\nPS: 请检查每个sheet下的数据点数是否一致')
         else:
             yon = sg.popup('还未进行数据拟合，是否拟合？')
             if yon:
@@ -425,7 +424,7 @@ class makeGUI():
             fig,(ax1, ax2) = plt.subplots(1,2)
             ax1.bar(vv, integral_fit_cap_ratio, color=self.init_color, label='Capacitance')
             ax1.bar(vv, 100-integral_fit_cap_ratio, bottom=integral_fit_cap_ratio, 
-            color='#A9A9A9', label='Diffusion')
+            color='#33f5a5', label='Diffusion')
             ax1.set_xticks([i for i in vv])
             ax1.set_xticklabels(self.filt_scan_rate)
             ax1.set_ylabel('Contribution ratio (%)')
@@ -448,7 +447,7 @@ class makeGUI():
                 'slope(∫k2dE, diffusion)=' + str(int(integFitData[4][0] * 1000) / 1000))
             plt.show()
         except ValueError:
-            sg.popup('拟合结果不可靠，请选择合适数据或扫速。')
+            sg.popup('拟合结果不可靠，请选择合适数据或扫速。\n每个扫速下的数据点数不能少于设置的个数')
         except FileNotFoundError:
             self.progwin.close()
             sg.popup('请选择数据文件。')
