@@ -21,7 +21,7 @@ class makeGUI():
         self.workspace = 'C:/Users/Administrator/Desktop'
         self.win1_active = False
         self.pvidx = [False, False]
-        self.dotnum = 2455
+        self.dotnum = 2448
         self.interval = 1
         self.scan_rate = [0.1,0.2,0.5,1,2,5,10,]
         self.data_list = []
@@ -190,7 +190,7 @@ class makeGUI():
     def new_project(self):
         self.win1_active = False
         self.pvidx = [False, False]
-        self.dotnum = 2455
+        self.dotnum = 2448
         self.interval = 1
         self.scan_rate = [0.1,0.2,0.5,1,2,5,10,]
         self.data_list = []
